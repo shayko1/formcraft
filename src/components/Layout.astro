@@ -37,7 +37,7 @@ const {
     <Seo title={title} description={description} noindex={noindex} image={image} jsonLd={jsonLd} />
     <slot name="head" />
   </head>
-  <body class={`min-h-screen antialiased ${bodyClass}`}>
+  <body class={`antialiased ${bodyClass.includes("h-dvh") || bodyClass.includes("overflow-hidden") ? "" : "min-h-screen "}${bodyClass}`}>
     <slot />
   </body>
 </html>

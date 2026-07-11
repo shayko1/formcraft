@@ -156,6 +156,28 @@ export default function FormBuilder(props: FormBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  // Lock document scroll so Settings never scrolls the canvas off-screen (Wix host included).
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlHeight: html.style.height,
+      bodyHeight: body.style.height,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.height = "100%";
+    body.style.height = "100%";
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.height = prev.htmlHeight;
+      body.style.height = prev.bodyHeight;
+    };
+  }, []);
+
   async function persist(extra: Record<string, unknown> = {}) {
     try {
       const res = await fetch(`/api/forms/${props.formId}`, {
@@ -378,9 +400,10 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="flex min-h-0 flex-col lg:h-dvh lg:overflow-hidden">
+      {/* Viewport-locked shell — columns scroll; page does not (works inside Wix host) */}
+      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-slate-100">
       {/* Top bar — stays visible */}
-      <div className="sticky top-0 z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href="/dashboard"
@@ -445,8 +468,8 @@ export default function FormBuilder(props: FormBuilderProps) {
         </div>
       </div>
 
-      {/* Mobile tabs — sticky under top bar */}
-      <div className="sticky top-[3.25rem] z-20 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
+      {/* Mobile tabs */}
+      <div className="z-20 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -471,7 +494,7 @@ export default function FormBuilder(props: FormBuilderProps) {
       {fullPreview ? (
         <div
           className={[
-            "hidden min-h-[70vh] p-6 lg:block",
+            "hidden min-h-0 flex-1 overflow-y-auto p-6 lg:block",
             resolvePageBackground(theme).bodyClass,
           ].join(" ")}
           style={resolvePageBackground(theme).style as React.CSSProperties | undefined}
@@ -491,18 +514,19 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-4 p-3 sm:p-4 lg:min-h-0 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4">
+      <div className="grid min-h-0 w-full min-w-0 flex-1 grid-cols-1 gap-4 overflow-hidden p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:p-4">
         {/* Desktop palette — independent scroll */}
-        <aside className="hidden min-w-0 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
+        <aside className="hidden min-h-0 min-w-0 overflow-y-auto overscroll-contain lg:block">
           <Palette onAdd={addField} />
         </aside>
 
-        {/* Canvas column — stays on screen while Settings scrolls beside it */}
+        {/* Canvas column — stays put; Settings scroll in the right pane */}
         <main
           className={[
-            "min-w-0",
-            tab === "build" ? "block" : "hidden lg:block",
-            "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
+            "min-h-0 min-w-0",
+            tab === "build"
+              ? "flex h-full flex-col overflow-hidden"
+              : "hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
           ].join(" ")}
         >
           <div className="mb-3 w-full min-w-0 shrink-0 lg:hidden">
@@ -588,17 +612,16 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </main>
 
-        {/* Right column — scrolls independently so canvas stays on screen */}
+        {/* Right column — scrolls on its own; canvas column does not move */}
         <aside
           className={[
-            "min-w-0 space-y-3",
-            tab === "build" ? "hidden lg:block" : "block",
-            "lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain",
+            "min-h-0 min-w-0 space-y-3 overflow-y-auto overscroll-contain",
+            tab === "build" ? "hidden lg:block lg:h-full" : "block h-full",
           ].join(" ")}
         >
           {/* Mobile: keep a peek of the form while editing settings */}
           {(tab === "settings" || tab === "design") && (
-            <div className="sticky top-[6.75rem] z-10 -mx-1 mb-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm lg:hidden">
+            <div className="sticky top-0 z-10 -mx-1 mb-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm lg:hidden">
               <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
                   Form preview
