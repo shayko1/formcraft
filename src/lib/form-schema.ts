@@ -59,6 +59,8 @@ export interface FormTheme {
   allowMultipleEntries?: boolean;
   /** Label for the dashed “add another” button. */
   addEntryLabel?: string;
+  /** When true, skip the phone-number duplicate guard on submit. */
+  allowDuplicateResponses?: boolean;
   pageBackground?: PageBackgroundPreset;
   cardStyle?: CardStyle;
 }
@@ -71,6 +73,7 @@ export const DEFAULT_THEME: FormTheme = {
   thankYouMessage: "Your response has been recorded.",
   allowMultipleEntries: false,
   addEntryLabel: "Add another response",
+  allowDuplicateResponses: false,
   pageBackground: "slate",
   cardStyle: "elevated",
 };

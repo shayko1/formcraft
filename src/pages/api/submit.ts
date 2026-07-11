@@ -29,11 +29,13 @@ export const POST: APIRoute = async ({ request }) => {
   // NOTE: no response-quota rejection here — responses are ALWAYS collected and stored.
   // Free-tier limits only cap how many are shown in the admin panel (see submissions page).
 
-  // Duplicate guard on the first phone-like field, if present.
-  const phoneField = form.fields.find(isPhoneField);
-  if (phoneField && !isEmptyValue(data[phoneField.id])) {
-    const dup = await existsWithValue(formId, phoneField.id, String(data[phoneField.id]));
-    if (dup) return json(409, "A response with this phone number already exists.");
+  // Duplicate guard on the first phone-like field (opt-out via theme.allowDuplicateResponses).
+  if (!form.theme.allowDuplicateResponses) {
+    const phoneField = form.fields.find(isPhoneField);
+    if (phoneField && !isEmptyValue(data[phoneField.id])) {
+      const dup = await existsWithValue(formId, phoneField.id, String(data[phoneField.id]));
+      if (dup) return json(409, "A response with this phone number already exists.");
+    }
   }
 
   try {

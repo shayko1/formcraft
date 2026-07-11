@@ -96,6 +96,8 @@ export default function SubmissionsPanel({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [draftInternal, setDraftInternal] = useState<Record<string, string>>({});
   const [detailSaving, setDetailSaving] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailSaved, setDetailSaved] = useState(false);
 
   const duplicateIds = useMemo(() => findDuplicateIds(fields, rows), [fields, rows]);
 
@@ -152,11 +154,15 @@ export default function SubmissionsPanel({
     }
     setDraftInternal(draft);
     setError(null);
+    setDetailError(null);
+    setDetailSaved(false);
   };
 
   const closeDetail = () => {
     setDetailId(null);
     setDraftInternal({});
+    setDetailError(null);
+    setDetailSaved(false);
   };
 
   const callApi = async (url: string, body: object) => {
@@ -165,7 +171,16 @@ export default function SubmissionsPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
+    if (!res.ok) {
+      let message = `Error ${res.status}`;
+      try {
+        const j = (await res.json()) as { message?: string };
+        if (j.message) message = j.message;
+      } catch {
+        /* non-JSON error body */
+      }
+      throw new Error(message);
+    }
     return res;
   };
 
@@ -239,7 +254,8 @@ export default function SubmissionsPanel({
   const saveInternal = async () => {
     if (!detailRow) return;
     setDetailSaving(true);
-    setError(null);
+    setDetailError(null);
+    setDetailSaved(false);
     try {
       const res = await callApi("/api/submissions/update-internal", {
         formId,
@@ -251,8 +267,9 @@ export default function SubmissionsPanel({
       setRows((prev) =>
         prev.map((r) => (r.id === detailRow.id ? { ...r, data: nextData } : r)),
       );
+      setDetailSaved(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      setDetailError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setDetailSaving(false);
     }
@@ -549,9 +566,10 @@ export default function SubmissionsPanel({
                         {f.type === "select" ? (
                           <select
                             value={draftInternal[f.id] ?? ""}
-                            onChange={(e) =>
-                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              setDetailSaved(false);
+                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }));
+                            }}
                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/30"
                           >
                             <option value="">—</option>
@@ -564,9 +582,10 @@ export default function SubmissionsPanel({
                         ) : (
                           <textarea
                             value={draftInternal[f.id] ?? ""}
-                            onChange={(e) =>
-                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              setDetailSaved(false);
+                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }));
+                            }}
                             rows={3}
                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/30"
                           />
@@ -578,7 +597,13 @@ export default function SubmissionsPanel({
               </section>
             </div>
             {internalFields.length > 0 && (
-              <div className="border-t border-slate-200 px-4 py-3">
+              <div className="space-y-2 border-t border-slate-200 px-4 py-3">
+                {detailError && (
+                  <p className="text-sm font-medium text-red-600">{detailError}</p>
+                )}
+                {detailSaved && !detailError && (
+                  <p className="text-sm font-medium text-green-600">Saved</p>
+                )}
                 <button
                   type="button"
                   onClick={() => void saveInternal()}

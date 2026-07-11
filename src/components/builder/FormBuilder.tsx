@@ -574,6 +574,25 @@ export default function FormBuilder(props: FormBuilderProps) {
                   </>
                 )}
 
+                <label className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">
+                      Allow duplicate responses
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      When off, the same phone number cannot submit twice
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!theme.allowDuplicateResponses}
+                    onChange={(e) =>
+                      setTheme((t) => ({ ...t, allowDuplicateResponses: e.target.checked }))
+                    }
+                    className="h-4 w-4 shrink-0 accent-brand-600"
+                  />
+                </label>
+
                 <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Page background
                 </p>

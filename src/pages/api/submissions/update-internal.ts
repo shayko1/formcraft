@@ -7,26 +7,26 @@ import { getSubmissionById, updateInternalData } from "../../../lib/submissions"
 // { formId, submissionId, data } — owner-only; merges only internal field keys.
 export const POST: APIRoute = async ({ request }) => {
   const memberId = await getCurrentMemberId();
-  if (!memberId) return new Response("Unauthorized", { status: 401 });
+  if (!memberId) return json(401, "Unauthorized.");
 
   let body: { formId?: string; submissionId?: string; data?: Record<string, unknown> };
   try {
     body = await request.json();
   } catch {
-    return new Response("Bad Request", { status: 400 });
+    return json(400, "Bad Request.");
   }
 
   const { formId, submissionId, data } = body;
   if (!formId || !submissionId || typeof data !== "object" || data === null) {
-    return new Response("Bad Request", { status: 400 });
+    return json(400, "Bad Request.");
   }
 
   const form = await getFormById(formId);
-  if (!form) return new Response("Not Found", { status: 404 });
-  if (form.ownerId !== memberId) return new Response("Forbidden", { status: 403 });
+  if (!form) return json(404, "Form not found.");
+  if (form.ownerId !== memberId) return json(403, "Forbidden.");
 
   const sub = await getSubmissionById(submissionId);
-  if (!sub || sub.formId !== formId) return new Response("Not Found", { status: 404 });
+  if (!sub || sub.formId !== formId) return json(404, "Submission not found.");
 
   const byId = new Map(form.internalFields.map((f) => [f.id, f]));
   const patch: Record<string, unknown> = {};
@@ -37,10 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
       const opts = field.options ?? [];
       const str = value == null ? "" : String(value);
       if (str !== "" && !opts.includes(str)) {
-        return new Response(JSON.stringify({ message: `Invalid value for ${field.label}.` }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return json(400, `Invalid value for ${field.label}.`);
       }
       patch[key] = str;
     } else {
@@ -56,9 +53,13 @@ export const POST: APIRoute = async ({ request }) => {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "Update failed";
-    return new Response(JSON.stringify({ message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(500, message);
   }
 };
+
+function json(status: number, message: string): Response {
+  return new Response(JSON.stringify({ message }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}

@@ -19,17 +19,27 @@ function parseData(raw: unknown): Record<string, unknown> {
   }
 }
 
-// Unwrap only the response container ({ dataItem } / { item }). Unlike Forms, a
-// Submission has a real field named `data` (the answers blob), so we must NOT strip
-// a `.data` level once we've reached a record that has submission fields.
+// Unwrap { dataItem } / { item } wrappers. Submissions also have a field named `data`
+// (answers blob), so only descend into `.data` when it looks like the CMS record
+// (has formId) — not when it is the answers object/string.
 function toRecord(raw: unknown): Record<string, unknown> {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const c = (r.dataItem ?? r.item ?? r) as Record<string, unknown>;
-  // If this container is a wrapper (no submission fields) but holds a nested record, descend.
-  if (c && c._id === undefined && c.id === undefined && c.formId === undefined && c.data && typeof c.data === "object") {
-    return c.data as Record<string, unknown>;
+  const container = (r.dataItem ?? r.item ?? r) as Record<string, unknown>;
+  if (!container) return {};
+
+  const nested = container.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const n = nested as Record<string, unknown>;
+    // items.get often returns { id, data: { formId, data, exported, ... } }
+    if (n.formId != null) {
+      return {
+        ...n,
+        _id: n._id ?? n.id ?? container._id ?? container.id,
+      };
+    }
   }
-  return c ?? {};
+
+  return container;
 }
 
 function mapSubmission(raw: Record<string, unknown>): Submission {
