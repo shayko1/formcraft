@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  MouseSensor,
+  PointerSensor,
   KeyboardSensor,
   closestCenter,
   useSensor,
@@ -105,9 +105,9 @@ export default function FormBuilder(props: FormBuilderProps) {
   const firstRender = useRef(true);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
 
-  // Desktop-only mouse drag. Mobile uses ↑↓ buttons — TouchSensor fights scroll/taps.
+  // Pointer for desktop drag; mobile reordering uses ↑↓ (enableDrag=false), not touch DnD.
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -296,7 +296,6 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="w-full max-w-[100vw] overflow-x-hidden">
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -406,15 +405,15 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div className="grid w-full min-w-0 grid-cols-1 gap-4 overflow-x-hidden p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
         {/* Desktop palette — hidden on mobile (mobile uses strip above canvas) */}
         <aside className="hidden min-w-0 lg:block">
           <Palette onAdd={addField} />
         </aside>
 
         {/* Canvas (+ mobile field strip) */}
-        <main className={["min-w-0 max-w-full overflow-x-hidden", tab === "build" ? "block" : "hidden lg:block"].join(" ")}>
-          <div className="mb-3 w-full min-w-0 max-w-full lg:hidden">
+        <main className={["min-w-0", tab === "build" ? "block" : "hidden lg:block"].join(" ")}>
+          <div className="mb-3 w-full min-w-0 lg:hidden">
             <Palette onAdd={addField} layout="strip" />
           </div>
           <div className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -725,7 +724,6 @@ export default function FormBuilder(props: FormBuilderProps) {
         </aside>
       </div>
       )}
-      </div>
 
       <DragOverlay>
         {activeId && activeId.startsWith("palette:") ? (

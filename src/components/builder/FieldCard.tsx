@@ -38,13 +38,11 @@ export default function FieldCard({
     disabled: !enableDrag,
   });
 
-  const style = enableDrag
-    ? {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-      }
-    : undefined;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const meta = FIELD_TYPES[field.type] ?? FIELD_TYPES.text;
 
@@ -62,7 +60,7 @@ export default function FieldCard({
         }
       }}
       className={[
-        "group flex max-w-full items-center gap-2 rounded-xl border bg-white p-3 shadow-sm transition sm:gap-3",
+        "group flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm transition",
         selected ? "border-brand-400 ring-2 ring-brand-200" : "border-slate-200 hover:border-slate-300",
       ].join(" ")}
     >
@@ -73,7 +71,7 @@ export default function FieldCard({
           {...attributes}
           aria-label="Drag to reorder"
           onClick={(e) => e.stopPropagation()}
-          className="flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+          className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded text-slate-300 hover:text-slate-500 active:cursor-grabbing"
         >
           <IconRenderer name="GripVertical" />
         </button>
