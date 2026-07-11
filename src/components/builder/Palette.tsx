@@ -62,7 +62,7 @@ function PaletteChip({
         comingSoon
           ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400"
           : strip
-            ? "border-slate-200 bg-white text-slate-700 active:bg-brand-50"
+            ? "shrink-0 whitespace-nowrap border-slate-200 bg-white text-slate-700 active:bg-brand-50"
             : "cursor-grab border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 active:cursor-grabbing",
         isDragging ? "opacity-40" : "",
       ].join(" ")}
@@ -98,16 +98,19 @@ export default function Palette({ onAdd, layout = "stack" }: PaletteProps) {
 
   if (strip) {
     return (
-      <div className="w-full min-w-0" style={{ maxWidth: "100%" }}>
+      <div className="w-full min-w-0">
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Tap to add a field
         </p>
-        {/* Outer locks width; inner flex is w-max so chips scroll instead of widening the page */}
-        <div
-          className="mt-2 pb-1 touch-pan-x"
-          style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overscrollBehaviorX: "contain" }}
-        >
-          <div className="flex gap-2 pr-1" style={{ width: "max-content" }}>
+        {/*
+          Absolute scroller: chips scroll horizontally without expanding page width.
+          (A normal overflow-x-auto flex row still grows parents via min-width:auto.)
+        */}
+        <div className="relative mt-2 h-11 w-full min-w-0">
+          <div
+            className="absolute inset-0 flex gap-2 overflow-x-auto overscroll-x-contain pb-1"
+            style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
+          >
             {available.map((meta) => (
               <PaletteChip
                 key={meta.type}
