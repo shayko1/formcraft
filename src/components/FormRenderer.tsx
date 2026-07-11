@@ -1,10 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type FieldConfig,
   type FormTheme,
   DEFAULT_THEME,
   validateFields,
 } from "../lib/form-schema";
+
+function trackOnce(formId: string, event: "view" | "start") {
+  try {
+    const key = `fc:${event}:${formId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // sessionStorage unavailable — still attempt track (may over-count)
+  }
+  void fetch("/api/analytics/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ formId, event }),
+    keepalive: true,
+  }).catch(() => {});
+}
 
 interface FormRendererProps {
   formId: string;
@@ -50,6 +66,24 @@ function inputModeFor(type: FieldConfig["type"]): React.HTMLAttributes<HTMLInput
   return undefined;
 }
 
+async function postSubmission(
+  formId: string,
+  data: Values,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formId, data }),
+    });
+    if (res.ok) return { ok: true };
+    const body = await res.json().catch(() => ({}));
+    return { ok: false, message: body.message ?? "Something went wrong. Please try again." };
+  } catch {
+    return { ok: false, message: "Network error. Please try again." };
+  }
+}
+
 export default function FormRenderer({
   formId,
   title,
@@ -58,73 +92,120 @@ export default function FormRenderer({
   theme = DEFAULT_THEME,
   preview = false,
 }: FormRendererProps) {
-  const [values, setValues] = useState<Values>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [rows, setRows] = useState<Values[]>([{}]);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState<string>("");
+  const started = useRef(false);
 
   const mergedTheme = { ...DEFAULT_THEME, ...theme };
+  const multi = !!mergedTheme.allowMultipleEntries;
   const accent = mergedTheme.accent || DEFAULT_THEME.accent;
   const style = useMemo(
     () => ({ ["--accent" as string]: accent }) as React.CSSProperties,
     [accent],
   );
 
-  const setValue = (id: string, v: string | string[]) => {
-    setValues((prev) => ({ ...prev, [id]: v }));
-    if (errors[id]) {
-      setErrors((prev) => {
-        const n = { ...prev };
-        delete n[id];
-        return n;
-      });
-    }
+  useEffect(() => {
+    if (preview) return;
+    trackOnce(formId, "view");
+  }, [formId, preview]);
+
+  const markStarted = () => {
+    if (preview || started.current) return;
+    started.current = true;
+    trackOnce(formId, "start");
   };
 
-  const toggleCheckbox = (id: string, option: string) => {
-    const current = Array.isArray(values[id]) ? (values[id] as string[]) : [];
+  const setValue = (rowIndex: number, id: string, v: string | string[]) => {
+    markStarted();
+    setRows((prev) => prev.map((row, i) => (i === rowIndex ? { ...row, [id]: v } : row)));
+    setRowErrors((prev) =>
+      prev.map((errs, i) => {
+        if (i !== rowIndex || !errs[id]) return errs;
+        const next = { ...errs };
+        delete next[id];
+        return next;
+      }),
+    );
+  };
+
+  const toggleCheckbox = (rowIndex: number, id: string, option: string) => {
+    const current = Array.isArray(rows[rowIndex]?.[id])
+      ? (rows[rowIndex]![id] as string[])
+      : [];
     const next = current.includes(option)
       ? current.filter((o) => o !== option)
       : [...current, option];
-    setValue(id, next);
+    setValue(rowIndex, id, next);
+  };
+
+  const addRow = () => {
+    if (!multi) return;
+    setRows((prev) => [...prev, {}]);
+    setRowErrors((prev) => [...prev, {}]);
+  };
+
+  const removeRow = (index: number) => {
+    if (rows.length <= 1) return;
+    setRows((prev) => prev.filter((_, i) => i !== index));
+    setRowErrors((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     if (preview) return;
-    const fieldErrors = validateFields(fields, values);
-    if (fieldErrors.length > 0) {
+    const nextErrors = rows.map((row) => {
+      const fieldErrors = validateFields(fields, row);
       const map: Record<string, string> = {};
       for (const e of fieldErrors) map[e.id] = e.message;
-      setErrors(map);
+      return map;
+    });
+    if (nextErrors.some((m) => Object.keys(m).length > 0)) {
+      setRowErrors(nextErrors);
+      setStatus("error");
+      setMessage("Please fix the highlighted fields.");
       return;
     }
+
     setStatus("loading");
     setMessage("");
-    try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId, data: values }),
+
+    const results = await Promise.all(rows.map((row) => postSubmission(formId, row)));
+    const failed = results.filter((r) => !r.ok);
+    const saved = results.length - failed.length;
+
+    if (failed.length === 0) {
+      setStatus("done");
+      return;
+    }
+
+    setStatus("error");
+    if (saved > 0) {
+      setMessage(
+        `Saved ${saved} of ${results.length} responses. ${failed[0]?.ok === false ? failed[0].message : "Please try again."}`,
+      );
+      // Drop successfully saved rows so a retry only re-sends failures.
+      const remaining: Values[] = [];
+      const remainingErrors: Record<string, string>[] = [];
+      results.forEach((r, i) => {
+        if (!r.ok) {
+          remaining.push(rows[i]!);
+          remainingErrors.push({});
+        }
       });
-      if (res.ok) {
-        setStatus("done");
-        return;
-      }
-      const body = await res.json().catch(() => ({}));
-      setStatus("error");
-      setMessage(body.message ?? "Something went wrong. Please try again.");
-    } catch {
-      setStatus("error");
-      setMessage("Network error. Please try again.");
+      setRows(remaining.length ? remaining : [{}]);
+      setRowErrors(remainingErrors.length ? remainingErrors : [{}]);
+    } else {
+      setMessage(failed[0]?.ok === false ? failed[0].message : "Something went wrong. Please try again.");
     }
   };
 
   const inputBase =
     "w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition focus:ring-2";
-  const inputCls = (id: string) =>
+  const inputCls = (err?: string) =>
     [
       inputBase,
-      errors[id]
+      err
         ? "border-red-400 bg-red-50 focus:ring-red-300"
         : "border-slate-300 bg-white focus:border-[var(--accent)] focus:ring-[color-mix(in_srgb,var(--accent)_35%,white)]",
     ].join(" ");
@@ -152,6 +233,124 @@ export default function FormRenderer({
     );
   }
 
+  const renderFields = (rowIndex: number, values: Values, errors: Record<string, string>) => (
+    <div className="space-y-4">
+      {fields.map((f) => {
+        const dir = fieldDir(f, mergedTheme);
+        const err = errors[f.id];
+        const helpId = `${f.id}-r${rowIndex}-help`;
+        const radioName = `${f.id}__${rowIndex}`;
+        return (
+          <div key={f.id}>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              {f.label}
+              {f.required && <span className="text-red-500"> *</span>}
+            </label>
+
+            {f.type === "file" ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
+                File uploads coming soon
+              </div>
+            ) : f.type === "textarea" ? (
+              <textarea
+                dir={dir}
+                rows={4}
+                disabled={preview}
+                placeholder={f.placeholder}
+                minLength={f.min}
+                maxLength={f.max}
+                value={(values[f.id] as string) ?? ""}
+                onFocus={markStarted}
+                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+                className={inputCls(err)}
+                aria-invalid={!!err}
+                aria-describedby={f.helpText ? helpId : undefined}
+              />
+            ) : f.type === "select" ? (
+              <select
+                dir={dir}
+                disabled={preview}
+                value={(values[f.id] as string) ?? ""}
+                onFocus={markStarted}
+                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+                className={inputCls(err)}
+                aria-invalid={!!err}
+              >
+                <option value="">{f.placeholder || "—"}</option>
+                {(f.options ?? []).map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            ) : f.type === "radio" ? (
+              <div className="space-y-1.5" role="radiogroup" aria-label={f.label}>
+                {(f.options ?? []).map((o) => (
+                  <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="radio"
+                      name={radioName}
+                      disabled={preview}
+                      checked={values[f.id] === o}
+                      onFocus={markStarted}
+                      onChange={() => setValue(rowIndex, f.id, o)}
+                      style={{ accentColor: "var(--accent)" }}
+                    />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            ) : f.type === "checkbox" ? (
+              <div className="space-y-1.5" role="group" aria-label={f.label}>
+                {(f.options ?? []).map((o) => (
+                  <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      disabled={preview}
+                      checked={
+                        Array.isArray(values[f.id]) &&
+                        (values[f.id] as string[]).includes(o)
+                      }
+                      onFocus={markStarted}
+                      onChange={() => toggleCheckbox(rowIndex, f.id, o)}
+                      style={{ accentColor: "var(--accent)" }}
+                    />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <input
+                type={inputType(f.type)}
+                inputMode={inputModeFor(f.type)}
+                dir={dir}
+                disabled={preview}
+                placeholder={f.placeholder}
+                min={f.type === "number" ? f.min : undefined}
+                max={f.type === "number" ? f.max : undefined}
+                minLength={f.type === "text" ? f.min : undefined}
+                maxLength={f.type === "text" ? f.max : undefined}
+                value={(values[f.id] as string) ?? ""}
+                onFocus={markStarted}
+                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+                className={inputCls(err)}
+                aria-invalid={!!err}
+                aria-describedby={f.helpText ? helpId : undefined}
+              />
+            )}
+
+            {f.helpText && (
+              <p id={helpId} className="mt-1 text-xs text-slate-400">
+                {f.helpText}
+              </p>
+            )}
+            {err && <p className="mt-1 text-xs font-medium text-red-500">{err}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div style={style} dir={mergedTheme.dir} className="space-y-5">
       <div>
@@ -160,113 +359,46 @@ export default function FormRenderer({
       </div>
 
       <div className="space-y-4">
-        {fields.map((f) => {
-          const dir = fieldDir(f, mergedTheme);
-          const err = errors[f.id];
+        {rows.map((values, rowIndex) => {
+          const errors = rowErrors[rowIndex] ?? {};
+          const body = renderFields(rowIndex, values, errors);
+          if (!multi) return <div key={rowIndex}>{body}</div>;
           return (
-            <div key={f.id}>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                {f.label}
-                {f.required && <span className="text-red-500"> *</span>}
-              </label>
-
-              {f.type === "file" ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
-                  File uploads coming soon
-                </div>
-              ) : f.type === "textarea" ? (
-                <textarea
-                  dir={dir}
-                  rows={4}
-                  disabled={preview}
-                  placeholder={f.placeholder}
-                  minLength={f.min}
-                  maxLength={f.max}
-                  value={(values[f.id] as string) ?? ""}
-                  onChange={(e) => setValue(f.id, e.target.value)}
-                  className={inputCls(f.id)}
-                  aria-invalid={!!err}
-                  aria-describedby={f.helpText ? `${f.id}-help` : undefined}
-                />
-              ) : f.type === "select" ? (
-                <select
-                  dir={dir}
-                  disabled={preview}
-                  value={(values[f.id] as string) ?? ""}
-                  onChange={(e) => setValue(f.id, e.target.value)}
-                  className={inputCls(f.id)}
-                  aria-invalid={!!err}
+            <div
+              key={rowIndex}
+              className="relative rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+            >
+              {rows.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeRow(rowIndex)}
+                  aria-label="Remove response"
+                  className="absolute end-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500"
                 >
-                  <option value="">{f.placeholder || "—"}</option>
-                  {(f.options ?? []).map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-              ) : f.type === "radio" ? (
-                <div className="space-y-1.5" role="radiogroup" aria-label={f.label}>
-                  {(f.options ?? []).map((o) => (
-                    <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="radio"
-                        name={f.id}
-                        disabled={preview}
-                        checked={values[f.id] === o}
-                        onChange={() => setValue(f.id, o)}
-                        style={{ accentColor: "var(--accent)" }}
-                      />
-                      {o}
-                    </label>
-                  ))}
-                </div>
-              ) : f.type === "checkbox" ? (
-                <div className="space-y-1.5" role="group" aria-label={f.label}>
-                  {(f.options ?? []).map((o) => (
-                    <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        disabled={preview}
-                        checked={
-                          Array.isArray(values[f.id]) &&
-                          (values[f.id] as string[]).includes(o)
-                        }
-                        onChange={() => toggleCheckbox(f.id, o)}
-                        style={{ accentColor: "var(--accent)" }}
-                      />
-                      {o}
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  type={inputType(f.type)}
-                  inputMode={inputModeFor(f.type)}
-                  dir={dir}
-                  disabled={preview}
-                  placeholder={f.placeholder}
-                  min={f.type === "number" ? f.min : undefined}
-                  max={f.type === "number" ? f.max : undefined}
-                  minLength={f.type === "text" ? f.min : undefined}
-                  maxLength={f.type === "text" ? f.max : undefined}
-                  value={(values[f.id] as string) ?? ""}
-                  onChange={(e) => setValue(f.id, e.target.value)}
-                  className={inputCls(f.id)}
-                  aria-invalid={!!err}
-                  aria-describedby={f.helpText ? `${f.id}-help` : undefined}
-                />
+                  ×
+                </button>
               )}
-
-              {f.helpText && (
-                <p id={`${f.id}-help`} className="mt-1 text-xs text-slate-400">
-                  {f.helpText}
+              {rows.length > 1 && (
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Response {rowIndex + 1}
                 </p>
               )}
-              {err && <p className="mt-1 text-xs font-medium text-red-500">{err}</p>}
+              {body}
             </div>
           );
         })}
       </div>
+
+      {multi && (
+        <button
+          type="button"
+          onClick={addRow}
+          className="flex w-full items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--accent)_45%,white)] py-3 text-sm font-medium transition hover:bg-[color-mix(in_srgb,var(--accent)_8%,white)]"
+          style={{ color: "var(--accent)" }}
+        >
+          + {mergedTheme.addEntryLabel || DEFAULT_THEME.addEntryLabel}
+        </button>
+      )}
 
       {status === "error" && message && (
         <p className="text-sm font-medium text-red-600">{message}</p>

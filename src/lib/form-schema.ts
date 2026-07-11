@@ -29,12 +29,28 @@ export interface FieldConfig {
   max?: number;
 }
 
+export type PageBackgroundPreset =
+  | "slate"
+  | "sand"
+  | "mint"
+  | "blush"
+  | "ink"
+  | "brand";
+
+export type CardStyle = "elevated" | "bordered" | "plain";
+
 export interface FormTheme {
   accent: string; // hex color, drives buttons + focus rings
   dir: "rtl" | "ltr";
   submitLabel?: string;
   thankYouTitle?: string;
   thankYouMessage?: string;
+  /** When true, public form can add multiple field-blocks (Pichman-style). */
+  allowMultipleEntries?: boolean;
+  /** Label for the dashed “add another” button. */
+  addEntryLabel?: string;
+  pageBackground?: PageBackgroundPreset;
+  cardStyle?: CardStyle;
 }
 
 export const DEFAULT_THEME: FormTheme = {
@@ -43,7 +59,67 @@ export const DEFAULT_THEME: FormTheme = {
   submitLabel: "Submit",
   thankYouTitle: "Thank you!",
   thankYouMessage: "Your response has been recorded.",
+  allowMultipleEntries: false,
+  addEntryLabel: "Add another response",
+  pageBackground: "slate",
+  cardStyle: "elevated",
 };
+
+export const PAGE_BACKGROUNDS: {
+  id: PageBackgroundPreset;
+  label: string;
+  bodyClass: string;
+  swatch: string;
+}[] = [
+  { id: "slate", label: "Slate", bodyClass: "bg-slate-50 text-slate-900", swatch: "#f8fafc" },
+  { id: "sand", label: "Sand", bodyClass: "bg-amber-50 text-slate-900", swatch: "#fffbeb" },
+  { id: "mint", label: "Mint", bodyClass: "bg-emerald-50 text-slate-900", swatch: "#ecfdf5" },
+  { id: "blush", label: "Blush", bodyClass: "bg-rose-50 text-slate-900", swatch: "#fff1f2" },
+  { id: "ink", label: "Ink", bodyClass: "bg-slate-950 text-slate-100", swatch: "#020617" },
+  { id: "brand", label: "Brand wash", bodyClass: "text-slate-900", swatch: "brand" },
+];
+
+export const CARD_STYLES: { id: CardStyle; label: string; className: string }[] = [
+  {
+    id: "elevated",
+    label: "Elevated",
+    className:
+      "rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-100 sm:p-8",
+  },
+  {
+    id: "bordered",
+    label: "Bordered",
+    className: "rounded-3xl bg-white p-6 ring-2 ring-slate-200 sm:p-8",
+  },
+  {
+    id: "plain",
+    label: "Plain",
+    className: "rounded-2xl bg-white/90 p-6 sm:p-8",
+  },
+];
+
+export function resolvePageBackground(theme: FormTheme): {
+  bodyClass: string;
+  style?: Record<string, string>;
+} {
+  const id = theme.pageBackground ?? DEFAULT_THEME.pageBackground!;
+  const preset = PAGE_BACKGROUNDS.find((p) => p.id === id) ?? PAGE_BACKGROUNDS[0]!;
+  if (id === "brand") {
+    const accent = theme.accent || DEFAULT_THEME.accent;
+    return {
+      bodyClass: preset.bodyClass,
+      style: {
+        background: `color-mix(in srgb, ${accent} 14%, white)`,
+      },
+    };
+  }
+  return { bodyClass: preset.bodyClass };
+}
+
+export function resolveCardClass(theme: FormTheme): string {
+  const id = theme.cardStyle ?? DEFAULT_THEME.cardStyle!;
+  return (CARD_STYLES.find((c) => c.id === id) ?? CARD_STYLES[0]!).className;
+}
 
 // Metadata registry — one entry per field type. Rendering lives in the React
 // components; this holds only the data both server and client agree on.

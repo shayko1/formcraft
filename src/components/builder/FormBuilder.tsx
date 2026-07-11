@@ -21,9 +21,15 @@ import {
 import {
   FIELD_TYPES,
   DEFAULT_THEME,
+  PAGE_BACKGROUNDS,
+  CARD_STYLES,
+  resolvePageBackground,
+  resolveCardClass,
   type FieldConfig,
   type FieldType,
   type FormTheme,
+  type PageBackgroundPreset,
+  type CardStyle,
 } from "../../lib/form-schema";
 import Palette from "./Palette";
 import FieldCard from "./FieldCard";
@@ -65,6 +71,7 @@ const ACCENTS = [
 ];
 
 type Tab = "build" | "settings" | "design" | "preview";
+type RightPane = "edit" | "live";
 
 export default function FormBuilder(props: FormBuilderProps) {
   const [title, setTitle] = useState(props.initialTitle);
@@ -82,6 +89,8 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [showPublish, setShowPublish] = useState(false);
   const [tab, setTab] = useState<Tab>("build");
+  const [rightPane, setRightPane] = useState<RightPane>("edit");
+  const [fullPreview, setFullPreview] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const firstRender = useRef(true);
@@ -139,6 +148,7 @@ export default function FormBuilder(props: FormBuilderProps) {
 
   const selectField = (id: string) => {
     setSelectedId(id);
+    setRightPane("edit");
     // On narrow screens, jump to settings so the user can edit immediately.
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
       setTab("settings");
@@ -286,6 +296,18 @@ export default function FormBuilder(props: FormBuilderProps) {
           >
             Save
           </button>
+          <button
+            type="button"
+            onClick={() => setFullPreview((v) => !v)}
+            className={[
+              "hidden rounded-lg border px-3 py-1.5 text-sm font-semibold transition lg:inline-flex",
+              fullPreview
+                ? "border-brand-400 bg-brand-50 text-brand-700"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            {fullPreview ? "Back to editor" : "Preview"}
+          </button>
           <a
             href={`/dashboard/forms/${props.formId}/submissions`}
             className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -308,7 +330,10 @@ export default function FormBuilder(props: FormBuilderProps) {
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              setFullPreview(false);
+              setTab(t.id);
+            }}
             className={[
               "shrink-0 px-3 py-2 text-sm font-semibold capitalize transition",
               tab === t.id
@@ -321,6 +346,27 @@ export default function FormBuilder(props: FormBuilderProps) {
         ))}
       </div>
 
+      {/* Desktop full preview — real form width, no builder chrome */}
+      {fullPreview ? (
+        <div
+          className={[
+            "hidden min-h-[70vh] p-6 lg:block",
+            resolvePageBackground(theme).bodyClass,
+          ].join(" ")}
+          style={resolvePageBackground(theme).style as React.CSSProperties | undefined}
+        >
+          <div className={["mx-auto max-w-lg", resolveCardClass(theme)].join(" ")}>
+            <FormRenderer
+              formId={props.formId}
+              title={title}
+              description={description}
+              fields={fields}
+              theme={theme}
+              preview
+            />
+          </div>
+        </div>
+      ) : (
       <div className="grid gap-4 p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
         {/* Palette */}
         <aside className={tab === "build" ? "block" : "hidden lg:block"}>
@@ -350,9 +396,38 @@ export default function FormBuilder(props: FormBuilderProps) {
           />
         </main>
 
-        {/* Settings + design (scrollable) above sticky live preview */}
-        <aside className="lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-5.5rem)] lg:flex-col lg:gap-4">
-          <div className="space-y-4 lg:max-h-[40vh] lg:min-h-0 lg:shrink-0 lg:overflow-y-auto">
+        {/* Right column: Edit | Live tabs (desktop); mobile uses main tabs */}
+        <aside className="space-y-3">
+          <div className="hidden gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 lg:flex">
+            {(
+              [
+                { id: "edit", label: "Edit" },
+                { id: "live", label: "Live" },
+              ] as const
+            ).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setRightPane(p.id)}
+                className={[
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition",
+                  rightPane === p.id
+                    ? "bg-white text-brand-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700",
+                ].join(" ")}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Edit pane: settings + design */}
+          <div
+            className={[
+              "space-y-4",
+              rightPane === "edit" ? "lg:block" : "lg:hidden",
+            ].join(" ")}
+          >
             <div className={tab === "settings" ? "block" : "hidden lg:block"}>
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -433,36 +508,139 @@ export default function FormBuilder(props: FormBuilderProps) {
                   rows={2}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
+
+                <label className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
+                  <span className="text-sm font-medium text-slate-700">
+                    Allow adding another response
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!theme.allowMultipleEntries}
+                    onChange={(e) =>
+                      setTheme((t) => ({ ...t, allowMultipleEntries: e.target.checked }))
+                    }
+                    className="h-4 w-4 accent-brand-600"
+                  />
+                </label>
+                {theme.allowMultipleEntries && (
+                  <>
+                    <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Add-button label
+                    </p>
+                    <input
+                      value={theme.addEntryLabel ?? ""}
+                      onChange={(e) =>
+                        setTheme((t) => ({ ...t, addEntryLabel: e.target.value }))
+                      }
+                      placeholder={DEFAULT_THEME.addEntryLabel}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                    />
+                  </>
+                )}
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Page background
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {PAGE_BACKGROUNDS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      title={p.label}
+                      aria-label={p.label}
+                      onClick={() =>
+                        setTheme((t) => ({
+                          ...t,
+                          pageBackground: p.id as PageBackgroundPreset,
+                        }))
+                      }
+                      className={[
+                        "h-8 w-8 rounded-full ring-2 ring-offset-2 transition",
+                        (theme.pageBackground ?? "slate") === p.id
+                          ? "ring-slate-400"
+                          : "ring-transparent",
+                      ].join(" ")}
+                      style={{
+                        background:
+                          p.id === "brand"
+                            ? `color-mix(in srgb, ${theme.accent || DEFAULT_THEME.accent} 35%, white)`
+                            : p.swatch,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Card style
+                </p>
+                <div className="flex gap-2">
+                  {CARD_STYLES.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() =>
+                        setTheme((t) => ({ ...t, cardStyle: c.id as CardStyle }))
+                      }
+                      className={[
+                        "flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition",
+                        (theme.cardStyle ?? "elevated") === c.id
+                          ? "border-brand-400 bg-brand-50 text-brand-700"
+                          : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Preview — always in view on desktop */}
+          {/* Live pane (desktop) + mobile Preview tab */}
           <div
-            className={
-              tab === "preview"
-                ? "block"
-                : "hidden lg:block lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
-            }
+            className={[
+              tab === "preview" ? "block" : "hidden",
+              rightPane === "live" ? "lg:block" : "lg:hidden",
+            ].join(" ")}
           >
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Live preview
-              </p>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <FormRenderer
-                  formId={props.formId}
-                  title={title}
-                  description={description}
-                  fields={fields}
-                  theme={theme}
-                  preview
-                />
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Live preview
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFullPreview(true)}
+                  className="hidden text-xs font-semibold text-brand-600 hover:text-brand-700 lg:inline"
+                >
+                  Full preview
+                </button>
+              </div>
+              <div
+                className={[
+                  "rounded-xl p-3",
+                  resolvePageBackground(theme).bodyClass,
+                ].join(" ")}
+                style={
+                  resolvePageBackground(theme).style as React.CSSProperties | undefined
+                }
+              >
+                <div className={resolveCardClass(theme).replace("sm:p-8", "sm:p-4").replace("p-6", "p-4")}>
+                  <FormRenderer
+                    formId={props.formId}
+                    title={title}
+                    description={description}
+                    fields={fields}
+                    theme={theme}
+                    preview
+                  />
+                </div>
               </div>
             </div>
           </div>
         </aside>
       </div>
+      )}
 
       <DragOverlay>
         {activeId && activeId.startsWith("palette:") ? (
