@@ -1,0 +1,54 @@
+---
+import Layout from "../../../../components/Layout.astro";
+import DashboardHeader from "../../../../components/DashboardHeader.astro";
+import SubmissionsPanel, { type SubmissionRow } from "../../../../components/SubmissionsPanel";
+import { getCurrentMemberId, loginRedirect } from "../../../../lib/session";
+import { getFormById } from "../../../../lib/forms";
+import { listSubmissions } from "../../../../lib/submissions";
+
+const { id } = Astro.params;
+const memberId = await getCurrentMemberId();
+if (!memberId) return Astro.redirect(loginRedirect(Astro.url.pathname));
+
+const form = id ? await getFormById(id) : null;
+if (!form) return new Response("Form not found", { status: 404 });
+if (form.ownerId !== memberId) return new Response("You don't have access to this form.", { status: 403 });
+
+let rows: SubmissionRow[] = [];
+let error: string | null = null;
+try {
+  const subs = await listSubmissions(form.id);
+  rows = subs.map((s) => ({ id: s.id, data: s.data, exported: s.exported, createdDate: s.createdDate }));
+} catch (e) {
+  error = e instanceof Error ? e.message : String(e);
+}
+
+const publicUrl = `${Astro.url.origin}/f/${form.slug}`;
+---
+<Layout title={`Responses · ${form.title}`} noindex bodyClass="bg-slate-50 text-slate-900">
+  <DashboardHeader />
+  <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div class="mb-6">
+      <a href="/dashboard" class="text-sm font-medium text-slate-500 hover:text-slate-700">← Back to my forms</a>
+      <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">{form.title}</h1>
+          {form.published ? (
+            <a href={publicUrl} target="_blank" rel="noreferrer" class="mt-0.5 block text-sm text-brand-600 hover:underline">{publicUrl}</a>
+          ) : (
+            <p class="mt-0.5 text-sm text-slate-400">Not published yet</p>
+          )}
+        </div>
+        <a href={`/dashboard/forms/${form.id}/edit`} class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          Edit form
+        </a>
+      </div>
+    </div>
+
+    {error ? (
+      <div class="rounded-2xl bg-red-50 p-6 text-sm text-red-700"><strong>Couldn't load responses.</strong> {error}</div>
+    ) : (
+      <SubmissionsPanel client:load formId={form.id} fields={form.fields} submissions={rows} />
+    )}
+  </main>
+</Layout>

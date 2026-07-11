@@ -1,0 +1,66 @@
+---
+import Layout from "../../components/Layout.astro";
+import DashboardHeader from "../../components/DashboardHeader.astro";
+import FormsList, { type FormSummary } from "../../components/FormsList";
+import { getCurrentMemberId, loginRedirect } from "../../lib/session";
+import { listFormsByOwner } from "../../lib/forms";
+import { getQuotaStatus } from "../../lib/plan";
+
+const memberId = await getCurrentMemberId();
+if (!memberId) return Astro.redirect(loginRedirect(Astro.url.pathname));
+
+let forms: FormSummary[] = [];
+let quota: Awaited<ReturnType<typeof getQuotaStatus>> | null = null;
+let error: string | null = null;
+
+try {
+  const [list, q] = await Promise.all([listFormsByOwner(memberId), getQuotaStatus(memberId)]);
+  forms = list.map((f) => ({
+    id: f.id,
+    title: f.title,
+    slug: f.slug,
+    published: f.published,
+    submissionCount: f.submissionCount,
+    templateId: f.templateId,
+  }));
+  quota = q;
+} catch (e) {
+  error = e instanceof Error ? e.message : String(e);
+}
+
+const origin = Astro.url.origin;
+---
+<Layout title="My forms" noindex bodyClass="bg-slate-50 text-slate-900">
+  <DashboardHeader active="forms" />
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">My forms</h1>
+        {quota && (
+          <p class="mt-0.5 text-sm text-slate-500">
+            {quota.tier === "pro" ? "Pro plan · unlimited" : `Free plan · ${quota.publishedForms}/${quota.maxPublishedForms} published · ${quota.submissionsThisMonth}/${quota.maxSubmissionsPerMonth} responses this month`}
+          </p>
+        )}
+      </div>
+      <a href="/dashboard/forms/new" class="rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+        + New form
+      </a>
+    </div>
+
+    {error ? (
+      <div class="rounded-2xl bg-red-50 p-6 text-sm text-red-700">
+        <strong>Couldn't load your forms.</strong> {error}
+      </div>
+    ) : (
+      <>
+        {quota && quota.tier === "free" && !quota.canPublishMore && (
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4">
+            <p class="text-sm font-medium text-brand-800">You've reached your free plan limit. Upgrade to publish more forms.</p>
+            <a href="/pricing" class="rounded-lg bg-grad-brand px-3 py-1.5 text-sm font-semibold text-white">Upgrade</a>
+          </div>
+        )}
+        <FormsList client:load forms={forms} origin={origin} />
+      </>
+    )}
+  </main>
+</Layout>

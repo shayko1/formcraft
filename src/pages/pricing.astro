@@ -1,0 +1,28 @@
+---
+import Layout from "../components/Layout.astro";
+import Nav from "../components/landing/Nav.astro";
+import Pricing from "../components/landing/Pricing.astro";
+import Faq from "../components/landing/Faq.astro";
+import CtaBanner from "../components/landing/CtaBanner.astro";
+import Footer from "../components/landing/Footer.astro";
+---
+<Layout
+  title="Pricing"
+  description="Free: 1 form and 100 responses a month. Pro: unlimited forms and responses."
+>
+  <Nav />
+  <main>
+    <section class="mx-auto max-w-3xl px-4 pt-16 text-center sm:px-6">
+      <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+        Pricing
+      </h1>
+      <p class="mx-auto mt-4 max-w-xl text-lg text-slate-600">
+        Free forever for one form. Upgrade when you need more.
+      </p>
+    </section>
+    <Pricing compact={true} />
+    <Faq />
+    <CtaBanner />
+  </main>
+  <Footer />
+</Layout>

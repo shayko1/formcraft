@@ -1,8 +1,51 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
----
+import Layout from "../components/Layout.astro";
+import Nav from "../components/landing/Nav.astro";
+import Hero from "../components/landing/Hero.astro";
+import Features from "../components/landing/Features.astro";
+import Showcase from "../components/landing/Showcase.astro";
+import HowItWorks from "../components/landing/HowItWorks.astro";
+import Pricing from "../components/landing/Pricing.astro";
+import Faq from "../components/landing/Faq.astro";
+import CtaBanner from "../components/landing/CtaBanner.astro";
+import Footer from "../components/landing/Footer.astro";
 
-<Layout>
-	<Welcome />
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "FormCraft",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "Build registration and intake forms, share a public link, and manage responses with search and CSV export.",
+    offers: [
+      { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
+      { "@type": "Offer", price: "12", priceCurrency: "USD", name: "Pro" },
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "FormCraft",
+    url: Astro.site?.toString(),
+  },
+];
+---
+<Layout
+  title="FormCraft: Build forms in minutes"
+  description="Build a form, share a link, collect responses. CSV export and duplicate detection included. Free to start on Wix."
+  jsonLd={jsonLd}
+>
+  <Nav />
+  <main>
+    <Hero />
+    <Features />
+    <Showcase />
+    <HowItWorks />
+    <Pricing />
+    <Faq />
+    <CtaBanner />
+  </main>
+  <Footer />
 </Layout>

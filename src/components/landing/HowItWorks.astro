@@ -1,0 +1,29 @@
+---
+const steps = [
+  { n: "1", title: "Pick a template", body: "Parking, event, contact, or blank. Open it and start editing." },
+  { n: "2", title: "Edit the fields", body: "Drag fields, change labels, mark required ones. Preview updates as you go." },
+  { n: "3", title: "Publish the link", body: "Share the URL. New responses show up in your admin panel." },
+];
+---
+<section id="how" class="bg-slate-50 py-20">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+        How it works
+      </h2>
+      <p class="mt-4 text-lg text-slate-600">Three steps. No setup.</p>
+    </div>
+
+    <div class="relative mt-14 grid gap-8 md:grid-cols-3">
+      {steps.map((s) => (
+        <div class="relative rounded-2xl border border-slate-100 bg-white p-7 shadow-sm">
+          <div class="flex h-11 w-11 items-center justify-center rounded-full bg-grad-brand text-lg font-bold text-white shadow-md">
+            {s.n}
+          </div>
+          <h3 class="mt-5 text-lg font-bold text-slate-900">{s.title}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600">{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,43 @@
+---
+import Layout from "../../components/Layout.astro";
+import FormRenderer from "../../components/FormRenderer";
+import { getFormBySlug } from "../../lib/forms";
+
+const { slug } = Astro.params;
+const form = slug ? await getFormBySlug(slug) : null;
+const available = form && form.published;
+const dir = form?.theme?.dir ?? "ltr";
+---
+<Layout
+  title={available ? form!.title : "Form unavailable"}
+  description={available ? form!.description || `Fill out ${form!.title}` : undefined}
+  noindex
+  dir={dir}
+  lang={dir === "rtl" ? "he" : "en"}
+  bodyClass="bg-slate-50 text-slate-900"
+>
+  <main class="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-4 py-10">
+    {available ? (
+      <div class="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-100 sm:p-8">
+        <FormRenderer
+          client:load
+          formId={form!.id}
+          title={form!.title}
+          description={form!.description}
+          fields={form!.fields}
+          theme={form!.theme}
+        />
+      </div>
+    ) : (
+      <div class="rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-100">
+        <span class="text-4xl">🔒</span>
+        <h1 class="mt-4 text-xl font-extrabold text-slate-900">This form isn't available</h1>
+        <p class="mt-2 text-sm text-slate-500">The link may be incorrect, or the form is no longer accepting responses.</p>
+        <a href="/" class="mt-6 inline-block rounded-xl bg-grad-brand px-5 py-2.5 text-sm font-semibold text-white">Go to FormCraft</a>
+      </div>
+    )}
+    <p class="mt-6 text-center text-xs text-slate-400">
+      Powered by <a href="/" class="font-semibold text-slate-500 hover:text-slate-700">FormCraft</a>
+    </p>
+  </main>
+</Layout>

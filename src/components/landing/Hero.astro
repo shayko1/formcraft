@@ -1,0 +1,88 @@
+---
+// Hero — zero JS. The "builder mockup" is pure HTML/CSS/SVG for PageSpeed.
+---
+<section class="relative overflow-hidden bg-dots">
+  <div class="pointer-events-none absolute inset-x-0 -top-40 h-80 bg-grad-soft blur-3xl"></div>
+
+  <div class="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
+    <!-- Copy -->
+    <div class="animate-fade-up">
+      <span class="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        No code · Works on Wix
+      </span>
+
+      <h1 class="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+        Forms you can
+        <span class="text-gradient">build in minutes.</span>
+      </h1>
+
+      <p class="mt-5 max-w-lg text-lg leading-relaxed text-slate-600">
+        Drag fields into place, publish a link, and collect responses.
+        Search, export to CSV, and spot duplicates from one admin panel.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <a href="/dashboard" class="rounded-xl bg-grad-brand px-6 py-3 text-base font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:opacity-90">
+          Start free
+        </a>
+        <a href="/#how" class="rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50">
+          How it works
+        </a>
+      </div>
+
+      <p class="mt-5 text-sm text-slate-500">
+        Free: 1 form, 100 responses a month. No credit card.
+      </p>
+    </div>
+
+    <!-- Builder mockup -->
+    <div class="relative animate-floaty">
+      <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
+        <div class="mb-3 flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+          <span class="ms-2 text-xs font-medium text-slate-400">formcraft · Parking Registration</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <!-- Palette -->
+          <div class="col-span-1 space-y-2 rounded-xl bg-slate-50 p-2">
+            {["Text", "Phone", "Email", "Date", "Choice"].map((t) => (
+              <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm">
+                <span class="text-brand-500">⋮⋮</span>{t}
+              </div>
+            ))}
+          </div>
+
+          <!-- Canvas -->
+          <div class="col-span-2 space-y-2.5">
+            <div class="rounded-xl border-2 border-brand-200 bg-brand-50/40 p-2.5">
+              <div class="text-[10px] font-semibold text-slate-400">FIRST NAME</div>
+              <div class="mt-1 h-5 rounded-md bg-white ring-1 ring-slate-200"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-2.5">
+              <div class="text-[10px] font-semibold text-slate-400">PHONE</div>
+              <div class="mt-1 h-5 rounded-md bg-slate-50 ring-1 ring-slate-200"></div>
+            </div>
+            <div class="rounded-xl border border-dashed border-brand-300 p-2.5 text-center text-[10px] font-medium text-brand-500">
+              + drop a field here
+            </div>
+            <div class="mt-1 h-7 rounded-lg bg-grad-brand text-center text-[11px] font-semibold leading-7 text-white">
+              Submit
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- floating "published" chip -->
+      <div class="absolute -bottom-4 -start-4 rounded-2xl border border-slate-100 bg-white px-4 py-2 shadow-xl">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <span class="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600">✓</span>
+          Published in 30s
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

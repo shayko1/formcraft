@@ -1,0 +1,26 @@
+---
+interface Props {
+  active?: string;
+}
+const { active } = Astro.props;
+---
+<header class="border-b border-slate-100 bg-white">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+    <a href="/dashboard" class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-grad-brand text-white">◆</span>
+      Form<span class="text-gradient">Craft</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <a
+        href="/dashboard"
+        class:list={["text-sm font-semibold transition", active === "forms" ? "text-brand-700" : "text-slate-600 hover:text-slate-900"]}
+      >
+        My forms
+      </a>
+      <a href="/pricing" class="text-sm font-semibold text-slate-600 transition hover:text-slate-900">Pricing</a>
+      <a href="/api/auth/logout?returnToUrl=/" class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200">
+        Sign out
+      </a>
+    </div>
+  </div>
+</header>

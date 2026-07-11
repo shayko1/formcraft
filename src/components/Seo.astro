@@ -1,0 +1,47 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  noindex?: boolean;
+  image?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  title,
+  description = "Build a form, share a link, collect responses. CSV export included. Free to start on Wix.",
+  noindex = false,
+  image,
+  jsonLd,
+} = Astro.props;
+
+const siteName = "FormCraft";
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).toString();
+const ogImage = image
+  ? new URL(image, Astro.site ?? Astro.url.origin).toString()
+  : new URL("/og.png", Astro.site ?? Astro.url.origin).toString();
+const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex ? <meta name="robots" content="noindex, nofollow" /> : <meta name="robots" content="index, follow" />}
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+{jsonLd && (
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+)}
