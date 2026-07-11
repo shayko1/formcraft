@@ -139,6 +139,20 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
   try {
     const res = await adminItems.get(SUBMISSIONS_COLLECTION, id);
     const mapped = mapSubmission(res as Record<string, unknown>);
+    if (mapped.id && mapped.formId) return mapped;
+  } catch {
+    /* fall through to query */
+  }
+  // items.get() can return a nested wrapper that omits formId; query matches list view shape.
+  try {
+    const res = await adminItems
+      .query(SUBMISSIONS_COLLECTION)
+      .eq("_id", id)
+      .limit(1)
+      .find();
+    const first = res.items[0] as Record<string, unknown> | undefined;
+    if (!first) return null;
+    const mapped = mapSubmission(first);
     return mapped.id ? mapped : null;
   } catch {
     return null;

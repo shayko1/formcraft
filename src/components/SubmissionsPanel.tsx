@@ -263,11 +263,12 @@ export default function SubmissionsPanel({
         data: draftInternal,
       });
       const json = (await res.json()) as { data?: Record<string, unknown> };
-      const nextData = json.data ?? { ...detailRow.data, ...draftInternal };
+      // Prefer draft for internal keys so the table updates even if the API payload is odd.
+      const nextData = { ...detailRow.data, ...(json.data ?? {}), ...draftInternal };
       setRows((prev) =>
         prev.map((r) => (r.id === detailRow.id ? { ...r, data: nextData } : r)),
       );
-      setDetailSaved(true);
+      closeDetail();
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : "Save failed");
     } finally {
