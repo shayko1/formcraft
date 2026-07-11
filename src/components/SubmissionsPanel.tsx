@@ -116,12 +116,12 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     return res;
   };
 
-  const handleExport = async () => {
-    if (selectedInView.length === 0) return;
+  const exportIds = async (ids: string[]) => {
+    if (ids.length === 0) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await callApi("/api/submissions/export", { formId, ids: selectedInView });
+      const res = await callApi("/api/submissions/export", { formId, ids });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement("a"), { href: url, download: `responses.csv` });
@@ -129,9 +129,8 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setRows((prev) =>
-        prev.map((r) => (selectedInView.includes(r.id) ? { ...r, exported: true } : r)),
-      );
+      const idSet = new Set(ids);
+      setRows((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, exported: true } : r)));
       setSelected(new Set());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed");
@@ -139,6 +138,10 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
       setLoading(false);
     }
   };
+
+  // Export selected rows, or — when nothing is selected — everything in the current view.
+  const handleExport = () => exportIds(selectedInView);
+  const handleExportAll = () => exportIds(filteredIds);
 
   const handleDelete = async () => {
     if (selectedInView.length === 0) return;
@@ -217,11 +220,18 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={handleExport}
-            disabled={loading || selectedInView.length === 0}
+            onClick={handleExportAll}
+            disabled={loading || filteredIds.length === 0}
             className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
           >
-            {loading ? "…" : `Export CSV (${selectedInView.length})`}
+            {loading ? "…" : `Export all (${filteredIds.length})`}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={loading || selectedInView.length === 0}
+            className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-700 ring-1 ring-brand-300 transition hover:bg-brand-50 disabled:opacity-50"
+          >
+            {loading ? "…" : `Export selected (${selectedInView.length})`}
           </button>
           <button
             onClick={handleDelete}
