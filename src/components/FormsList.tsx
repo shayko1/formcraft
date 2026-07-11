@@ -21,9 +21,13 @@ interface FormsListProps {
   origin: string;
 }
 
+const actionBtn =
+  "clay-btn-secondary flex h-10 w-full items-center justify-center px-3 text-xs font-bold";
+
 export default function FormsList({ forms: initial, origin }: FormsListProps) {
   const [forms, setForms] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const remove = async (id: string, title: string) => {
     if (!window.confirm(`Delete "${title}" and all its responses? This cannot be undone.`)) return;
@@ -36,9 +40,11 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
     }
   };
 
-  const copy = async (slug: string) => {
+  const copy = async (id: string, slug: string) => {
     try {
       await navigator.clipboard.writeText(`${origin}/f/${slug}`);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
     } catch {
       /* ignore */
     }
@@ -67,38 +73,54 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
       {forms.map((f) => (
         <div key={f.id} className="flex flex-col clay-card p-6">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-xl font-bold text-[var(--color-brand-dark)]">{f.title || "Untitled form"}</h3>
+            <h3 className="truncate text-xl font-bold text-[var(--color-brand-dark)]">
+              {f.title || "Untitled form"}
+            </h3>
             {f.published ? (
-              <span className="shrink-0 rounded-full bg-[var(--color-brand-accent)] px-3 py-1 text-xs font-bold text-white shadow-inner">Live</span>
+              <span className="shrink-0 rounded-full bg-[var(--color-brand-accent)] px-3 py-1 text-xs font-bold text-white shadow-inner">
+                Live
+              </span>
             ) : (
-              <span className="shrink-0 rounded-full bg-[var(--color-brand-light)] px-3 py-1 text-xs font-bold text-[var(--color-brand-muted)] shadow-inner">Draft</span>
+              <span className="shrink-0 rounded-full bg-[var(--color-brand-light)] px-3 py-1 text-xs font-bold text-[var(--color-brand-muted)] shadow-inner">
+                Draft
+              </span>
             )}
           </div>
-          <p className="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">{f.submissionCount} response{f.submissionCount === 1 ? "" : "s"}</p>
+          <p className="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">
+            {f.submissionCount} response{f.submissionCount === 1 ? "" : "s"}
+          </p>
 
-          <div className="mt-auto flex items-center justify-between gap-3 pt-6">
-            <div className="flex min-w-0 flex-wrap gap-2">
-              <a href={`/dashboard/forms/${f.id}/edit`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
-                Edit
-              </a>
-              <a href={`/dashboard/forms/${f.id}/submissions`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
-                Responses
-              </a>
+          {/* Fixed 2×2 action grid — identical on every card */}
+          <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
+            <a href={`/dashboard/forms/${f.id}/edit`} className={actionBtn}>
+              Edit
+            </a>
+            <a href={`/dashboard/forms/${f.id}/submissions`} className={actionBtn}>
+              Responses
+            </a>
+            {f.published ? (
               <button
                 type="button"
-                onClick={() => copy(f.slug)}
-                disabled={!f.published}
-                title={f.published ? "Copy public link" : "Publish the form to share a link"}
-                className="clay-btn-secondary px-4 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => void copy(f.id, f.slug)}
+                className={actionBtn}
+              >
+                {copiedId === f.id ? "Copied!" : "Copy link"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Publish the form to share a link"
+                className={`${actionBtn} cursor-not-allowed opacity-45`}
               >
                 Copy link
               </button>
-            </div>
+            )}
             <button
               type="button"
-              onClick={() => remove(f.id, f.title)}
+              onClick={() => void remove(f.id, f.title)}
               disabled={busy === f.id}
-              className="shrink-0 rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs font-bold text-red-500 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-red-100 bg-white px-3 text-xs font-bold text-red-500 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
             >
               {busy === f.id ? "…" : "Delete"}
             </button>
