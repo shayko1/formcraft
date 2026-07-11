@@ -24,7 +24,7 @@ export const TEMPLATES: Template[] = [
     id: "parking",
     name: "Parking / Gate Registration",
     description: "Name, apartment, and phone for a parking gate or building.",
-    icon: "🅿️",
+    icon: "Car",
     theme: { accent: "#2563eb", dir: "rtl" },
     fields: [
       f("text", "שם פרטי", { required: true }),
@@ -37,7 +37,7 @@ export const TEMPLATES: Template[] = [
     id: "event",
     name: "Event Signup",
     description: "RSVP with name, email, guests, and dietary notes.",
-    icon: "🎉",
+    icon: "PartyPopper",
     theme: { accent: "#db2777", dir: "ltr" },
     fields: [
       f("text", "Full name", { required: true }),
@@ -51,7 +51,7 @@ export const TEMPLATES: Template[] = [
     id: "contact",
     name: "Contact / Callback",
     description: "Name, phone, email, and a message.",
-    icon: "✉️",
+    icon: "Mail",
     theme: { accent: "#059669", dir: "ltr" },
     fields: [
       f("text", "Name", { required: true }),
@@ -64,7 +64,7 @@ export const TEMPLATES: Template[] = [
     id: "complaint",
     name: "Tenant Request / Complaint",
     description: "Maintenance requests with category and urgency.",
-    icon: "🔧",
+    icon: "Wrench",
     theme: { accent: "#ea580c", dir: "rtl" },
     fields: [
       f("text", "שם מלא", { required: true }),
@@ -76,10 +76,32 @@ export const TEMPLATES: Template[] = [
     ],
   },
   {
+    id: "feedback",
+    name: "Feedback Survey",
+    description: "Rating-style choices, website, and open comments.",
+    icon: "Star",
+    theme: { accent: "#7c3aed", dir: "ltr", submitLabel: "Send feedback" },
+    fields: [
+      f("text", "Name", { required: true }),
+      f("email", "Email", { dir: "ltr" }),
+      f("radio", "Overall experience", {
+        required: true,
+        options: ["Excellent", "Good", "Okay", "Poor"],
+      }),
+      f("checkbox", "What did you like?", {
+        options: ["Speed", "Design", "Support", "Price"],
+      }),
+      f("url", "Your website", { placeholder: "https://", dir: "ltr" }),
+      f("date", "Visit date", { dir: "ltr" }),
+      f("time", "Preferred callback time", { dir: "ltr" }),
+      f("textarea", "Anything else?", { placeholder: "Optional comments" }),
+    ],
+  },
+  {
     id: "custom",
     name: "Blank",
     description: "One field. Build the rest yourself.",
-    icon: "✨",
+    icon: "Sparkles",
     theme: { accent: "#4f46e5", dir: "ltr" },
     fields: [f("text", "Question 1", { required: true })],
   },

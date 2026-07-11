@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { getFormById, updateForm } from "../../lib/forms";
 import { insertSubmission, existsWithValue } from "../../lib/submissions";
 import { canAcceptSubmission } from "../../lib/plan";
-import { missingRequired, isPhoneField, isEmptyValue } from "../../lib/form-schema";
+import { validateFields, isPhoneField, isEmptyValue } from "../../lib/form-schema";
 
 // POST /api/submit  { formId, data } — public endpoint, no auth.
 export const POST: APIRoute = async ({ request }) => {
@@ -22,8 +22,10 @@ export const POST: APIRoute = async ({ request }) => {
   if (!form) return json(404, "This form does not exist.");
   if (!form.published) return json(403, "This form is not accepting responses.");
 
-  const missing = missingRequired(form.fields, data);
-  if (missing.length > 0) return json(400, "Please fill in all required fields.");
+  const fieldErrors = validateFields(form.fields, data);
+  if (fieldErrors.length > 0) {
+    return json(400, fieldErrors[0]?.message ?? "Please check the highlighted fields.");
+  }
 
   if (!(await canAcceptSubmission(form.ownerId))) {
     return json(402, "This form has reached its monthly response limit.");

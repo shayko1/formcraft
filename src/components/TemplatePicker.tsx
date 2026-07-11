@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as LucideIcons from "lucide-react";
 
 export interface TemplateCard {
   id: string;
@@ -6,6 +7,12 @@ export interface TemplateCard {
   description: string;
   icon: string;
   fieldCount: number;
+}
+
+function IconRenderer({ name }: { name: string }) {
+  const Icon = (LucideIcons as any)[name];
+  if (!Icon) return null;
+  return <Icon className="h-6 w-6 text-brand-600" />;
 }
 
 export default function TemplatePicker({ templates }: { templates: TemplateCard[] }) {
@@ -41,13 +48,17 @@ export default function TemplatePicker({ templates }: { templates: TemplateCard[
             disabled={busy !== null}
             className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 text-start shadow-sm transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg disabled:opacity-60"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-2xl transition group-hover:bg-brand-100">
-              {t.icon}
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 transition group-hover:bg-brand-100">
+              <IconRenderer name={t.icon} />
             </span>
             <h3 className="mt-4 text-base font-bold text-slate-900">{t.name}</h3>
             <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-500">{t.description}</p>
-            <span className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-600">
-              {busy === t.id ? "Creating…" : `${t.fieldCount} fields · Use template →`}
+            <span className="mt-4 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-600">
+              {busy === t.id ? "Creating…" : (
+                <>
+                  {t.fieldCount} fields · Use template <IconRenderer name="ArrowRight" className="h-3 w-3" />
+                </>
+              )}
             </span>
           </button>
         ))}

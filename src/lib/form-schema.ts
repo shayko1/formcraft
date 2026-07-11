@@ -6,77 +6,201 @@ export type FieldType =
   | "textarea"
   | "phone"
   | "email"
+  | "url"
   | "number"
   | "select"
   | "radio"
   | "checkbox"
-  | "date";
+  | "date"
+  | "time"
+  | "file";
 
 export interface FieldConfig {
   id: string;
   type: FieldType;
   label: string;
   placeholder?: string;
+  helpText?: string;
   required: boolean;
   options?: string[]; // select | radio | checkbox
   dir?: "rtl" | "ltr" | "auto";
+  /** Number / text length constraints */
+  min?: number;
+  max?: number;
 }
 
 export interface FormTheme {
   accent: string; // hex color, drives buttons + focus rings
   dir: "rtl" | "ltr";
+  submitLabel?: string;
+  thankYouTitle?: string;
+  thankYouMessage?: string;
 }
 
-export const DEFAULT_THEME: FormTheme = { accent: "#4f46e5", dir: "rtl" };
+export const DEFAULT_THEME: FormTheme = {
+  accent: "#4f46e5",
+  dir: "rtl",
+  submitLabel: "Submit",
+  thankYouTitle: "Thank you!",
+  thankYouMessage: "Your response has been recorded.",
+};
 
 // Metadata registry — one entry per field type. Rendering lives in the React
 // components; this holds only the data both server and client agree on.
 export interface FieldTypeMeta {
   type: FieldType;
-  label: string;      // human label in the builder palette
-  icon: string;       // single-glyph icon for the palette chip
+  label: string; // human label in the builder palette
+  icon: string; // single-glyph icon for the palette chip
   hasOptions: boolean;
   hasPlaceholder: boolean;
+  hasMinMax: boolean;
+  /** Disabled in palette / rendered as coming-soon (e.g. file upload). */
+  comingSoon?: boolean;
   /** Fresh config for a newly-added field of this type. `id` is filled by caller. */
   defaults: () => Omit<FieldConfig, "id" | "type">;
 }
 
 export const FIELD_TYPES: Record<FieldType, FieldTypeMeta> = {
   text: {
-    type: "text", label: "Short text", icon: "T", hasOptions: false, hasPlaceholder: true,
+    type: "text",
+    label: "Short text",
+    icon: "Type",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: true,
     defaults: () => ({ label: "Short text", placeholder: "", required: false }),
   },
   textarea: {
-    type: "textarea", label: "Paragraph", icon: "¶", hasOptions: false, hasPlaceholder: true,
+    type: "textarea",
+    label: "Paragraph",
+    icon: "AlignLeft",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: true,
     defaults: () => ({ label: "Paragraph", placeholder: "", required: false }),
   },
   phone: {
-    type: "phone", label: "Phone", icon: "☎", hasOptions: false, hasPlaceholder: true,
-    defaults: () => ({ label: "Phone", placeholder: "", required: true, dir: "ltr" }),
+    type: "phone",
+    label: "Phone",
+    icon: "Phone",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Phone",
+      placeholder: "050-000-0000",
+      required: true,
+      dir: "ltr",
+    }),
   },
   email: {
-    type: "email", label: "Email", icon: "@", hasOptions: false, hasPlaceholder: true,
-    defaults: () => ({ label: "Email", placeholder: "", required: false, dir: "ltr" }),
+    type: "email",
+    label: "Email",
+    icon: "AtSign",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Email",
+      placeholder: "you@example.com",
+      required: false,
+      dir: "ltr",
+    }),
+  },
+  url: {
+    type: "url",
+    label: "Website",
+    icon: "Link",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Website",
+      placeholder: "https://",
+      required: false,
+      dir: "ltr",
+    }),
   },
   number: {
-    type: "number", label: "Number", icon: "#", hasOptions: false, hasPlaceholder: true,
+    type: "number",
+    label: "Number",
+    icon: "Hash",
+    hasOptions: false,
+    hasPlaceholder: true,
+    hasMinMax: true,
     defaults: () => ({ label: "Number", placeholder: "", required: false }),
   },
   select: {
-    type: "select", label: "Dropdown", icon: "▾", hasOptions: true, hasPlaceholder: false,
-    defaults: () => ({ label: "Dropdown", required: false, options: ["Option 1", "Option 2"] }),
+    type: "select",
+    label: "Dropdown",
+    icon: "ChevronDownSquare",
+    hasOptions: true,
+    hasPlaceholder: true,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Dropdown",
+      placeholder: "Choose an option",
+      required: false,
+      options: ["Option 1", "Option 2"],
+    }),
   },
   radio: {
-    type: "radio", label: "Single choice", icon: "◉", hasOptions: true, hasPlaceholder: false,
-    defaults: () => ({ label: "Single choice", required: false, options: ["Option 1", "Option 2"] }),
+    type: "radio",
+    label: "Single choice",
+    icon: "CircleDot",
+    hasOptions: true,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Single choice",
+      required: false,
+      options: ["Option 1", "Option 2"],
+    }),
   },
   checkbox: {
-    type: "checkbox", label: "Checkboxes", icon: "☑", hasOptions: true, hasPlaceholder: false,
-    defaults: () => ({ label: "Checkboxes", required: false, options: ["Option 1", "Option 2"] }),
+    type: "checkbox",
+    label: "Checkboxes",
+    icon: "CheckSquare",
+    hasOptions: true,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Checkboxes",
+      required: false,
+      options: ["Option 1", "Option 2"],
+    }),
   },
   date: {
-    type: "date", label: "Date", icon: "📅", hasOptions: false, hasPlaceholder: false,
+    type: "date",
+    label: "Date",
+    icon: "Calendar",
+    hasOptions: false,
+    hasPlaceholder: false,
+    hasMinMax: false,
     defaults: () => ({ label: "Date", required: false, dir: "ltr" }),
+  },
+  time: {
+    type: "time",
+    label: "Time",
+    icon: "Clock",
+    hasOptions: false,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    defaults: () => ({ label: "Time", required: false, dir: "ltr" }),
+  },
+  file: {
+    type: "file",
+    label: "File upload",
+    icon: "Paperclip",
+    hasOptions: false,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    comingSoon: true,
+    defaults: () => ({
+      label: "File upload",
+      required: false,
+      helpText: "File uploads coming soon",
+    }),
   },
 };
 
@@ -91,7 +215,69 @@ export function isEmptyValue(v: unknown): boolean {
 
 /** Returns the ids of required fields that are missing in `data`. */
 export function missingRequired(fields: FieldConfig[], data: Record<string, unknown>): string[] {
-  return fields.filter((f) => f.required && isEmptyValue(data[f.id])).map((f) => f.id);
+  return fields
+    .filter((f) => f.type !== "file" && f.required && isEmptyValue(data[f.id]))
+    .map((f) => f.id);
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[^\s]*)?$/i;
+
+export type FieldError = { id: string; message: string };
+
+/** Client + server friendly field validation beyond required. */
+export function validateFields(
+  fields: FieldConfig[],
+  data: Record<string, unknown>,
+): FieldError[] {
+  const errors: FieldError[] = [];
+
+  for (const f of fields) {
+    if (f.type === "file") continue;
+    const raw = data[f.id];
+    const empty = isEmptyValue(raw);
+
+    if (f.required && empty) {
+      errors.push({ id: f.id, message: "This field is required" });
+      continue;
+    }
+    if (empty) continue;
+
+    const str = Array.isArray(raw) ? "" : String(raw).trim();
+
+    if (f.type === "email" && !EMAIL_RE.test(str)) {
+      errors.push({ id: f.id, message: "Enter a valid email address" });
+    }
+    if (f.type === "url" && !URL_RE.test(str)) {
+      errors.push({ id: f.id, message: "Enter a valid website URL" });
+    }
+    if (f.type === "phone" && str.replace(/\D/g, "").length < 7) {
+      errors.push({ id: f.id, message: "Enter a valid phone number" });
+    }
+    if (f.type === "number") {
+      const n = Number(str);
+      if (Number.isNaN(n)) {
+        errors.push({ id: f.id, message: "Enter a valid number" });
+      } else {
+        if (f.min != null && n < f.min) {
+          errors.push({ id: f.id, message: `Must be at least ${f.min}` });
+        }
+        if (f.max != null && n > f.max) {
+          errors.push({ id: f.id, message: `Must be at most ${f.max}` });
+        }
+      }
+    }
+    if ((f.type === "text" || f.type === "textarea") && !Array.isArray(raw)) {
+      if (f.min != null && str.length < f.min) {
+        errors.push({ id: f.id, message: `At least ${f.min} characters` });
+      }
+      if (f.max != null && str.length > f.max) {
+        errors.push({ id: f.id, message: `At most ${f.max} characters` });
+      }
+    }
+  }
+
+  return errors;
 }
 
 /** Heuristic: does this field hold a phone number? Used by duplicate detection. */

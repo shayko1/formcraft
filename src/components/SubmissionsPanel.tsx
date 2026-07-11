@@ -191,9 +191,9 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
         {duplicateIds.size > 0 && (
           <button
             onClick={selectDuplicates}
-            className="rounded-full bg-yellow-100 px-3 py-1 font-medium text-yellow-700 transition hover:bg-yellow-200"
+            className="flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 font-medium text-yellow-700 transition hover:bg-yellow-200"
           >
-            Duplicates: {duplicateIds.size} ▸ select
+            Duplicates: {duplicateIds.size} <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg> select
           </button>
         )}
       </div>
