@@ -76,22 +76,29 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
           </div>
           <p className="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">{f.submissionCount} response{f.submissionCount === 1 ? "" : "s"}</p>
 
-          <div className="mt-6 flex flex-1 flex-wrap items-end gap-3">
-            <a href={`/dashboard/forms/${f.id}/edit`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
-              Edit
-            </a>
-            <a href={`/dashboard/forms/${f.id}/submissions`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
-              Responses
-            </a>
-            {f.published && (
-              <button onClick={() => copy(f.slug)} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
+          <div className="mt-auto flex items-center justify-between gap-3 pt-6">
+            <div className="flex min-w-0 flex-wrap gap-2">
+              <a href={`/dashboard/forms/${f.id}/edit`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
+                Edit
+              </a>
+              <a href={`/dashboard/forms/${f.id}/submissions`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
+                Responses
+              </a>
+              <button
+                type="button"
+                onClick={() => copy(f.slug)}
+                disabled={!f.published}
+                title={f.published ? "Copy public link" : "Publish the form to share a link"}
+                className="clay-btn-secondary px-4 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 Copy link
               </button>
-            )}
+            </div>
             <button
+              type="button"
               onClick={() => remove(f.id, f.title)}
               disabled={busy === f.id}
-              className="ms-auto rounded-xl bg-white px-3 py-2 text-xs font-bold text-red-500 shadow-sm border border-slate-100 transition hover:bg-red-50 disabled:opacity-50"
+              className="shrink-0 rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs font-bold text-red-500 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
             >
               {busy === f.id ? "…" : "Delete"}
             </button>
