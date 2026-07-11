@@ -99,29 +99,21 @@ export default function Palette({ onAdd, layout = "stack" }: PaletteProps) {
   if (strip) {
     return (
       <div className="w-full min-w-0">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Tap to add a field
         </p>
-        {/*
-          Absolute scroller: chips scroll horizontally without expanding page width.
-          (A normal overflow-x-auto flex row still grows parents via min-width:auto.)
-        */}
-        <div className="relative mt-2 h-11 w-full min-w-0">
-          <div
-            className="absolute inset-0 flex gap-2 overflow-x-auto overscroll-x-contain pb-1"
-            style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
-          >
-            {available.map((meta) => (
-              <PaletteChip
-                key={meta.type}
-                type={meta.type}
-                label={meta.label}
-                icon={meta.icon}
-                onAdd={onAdd}
-                layout="strip"
-              />
-            ))}
-          </div>
+        {/* Wrap instead of a horizontal row — a long flex row expands page width on iOS. */}
+        <div className="flex flex-wrap gap-2">
+          {available.map((meta) => (
+            <PaletteChip
+              key={meta.type}
+              type={meta.type}
+              label={meta.label}
+              icon={meta.icon}
+              onAdd={onAdd}
+              layout="strip"
+            />
+          ))}
         </div>
       </div>
     );
