@@ -9,10 +9,10 @@ export interface TemplateCard {
   fieldCount: number;
 }
 
-function IconRenderer({ name }: { name: string }) {
+function IconRenderer({ name, className = "h-6 w-6 text-brand-600" }: { name: string; className?: string }) {
   const Icon = (LucideIcons as any)[name];
   if (!Icon) return null;
-  return <Icon className="h-6 w-6 text-brand-600" />;
+  return <Icon className={className} />;
 }
 
 export default function TemplatePicker({ templates }: { templates: TemplateCard[] }) {

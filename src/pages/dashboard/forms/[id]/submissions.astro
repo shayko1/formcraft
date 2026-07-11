@@ -2,9 +2,11 @@
 import Layout from "../../../../components/Layout.astro";
 import DashboardHeader from "../../../../components/DashboardHeader.astro";
 import SubmissionsPanel, { type SubmissionRow } from "../../../../components/SubmissionsPanel";
+import UpgradeButton from "../../../../components/UpgradeButton";
 import { getCurrentMemberId, loginRedirect } from "../../../../lib/session";
 import { getFormById } from "../../../../lib/forms";
 import { listSubmissions } from "../../../../lib/submissions";
+import { getVisibleSubmissionsLimit } from "../../../../lib/plan";
 
 const { id } = Astro.params;
 const memberId = await getCurrentMemberId();
@@ -15,10 +17,17 @@ if (!form) return new Response("Form not found", { status: 404 });
 if (form.ownerId !== memberId) return new Response("You don't have access to this form.", { status: 403 });
 
 let rows: SubmissionRow[] = [];
+let hiddenCount = 0;
 let error: string | null = null;
 try {
-  const subs = await listSubmissions(form.id);
-  rows = subs.map((s) => ({ id: s.id, data: s.data, exported: s.exported, createdDate: s.createdDate }));
+  // Responses are always collected; the free tier only SHOWS the newest N.
+  const [subs, limit] = await Promise.all([
+    listSubmissions(form.id),
+    getVisibleSubmissionsLimit(memberId),
+  ]);
+  const visible = Number.isFinite(limit) ? subs.slice(0, limit) : subs;
+  hiddenCount = subs.length - visible.length;
+  rows = visible.map((s) => ({ id: s.id, data: s.data, exported: s.exported, createdDate: s.createdDate }));
 } catch (e) {
   error = e instanceof Error ? e.message : String(e);
 }
@@ -47,6 +56,16 @@ const publicUrl = `${Astro.url.origin}/f/${form.slug}`;
         </a>
       </div>
     </div>
+
+    {hiddenCount > 0 && (
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <p class="text-sm font-semibold text-amber-900">
+          {hiddenCount} more response{hiddenCount === 1 ? " is" : "s are"} collected but hidden on the Free plan.
+          Upgrade to Pro to view and export all of them.
+        </p>
+        <UpgradeButton client:load label="Upgrade to Pro" className="rounded-lg bg-grad-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90" />
+      </div>
+    )}
 
     {error ? (
       <div class="rounded-2xl bg-red-50 p-6 text-sm text-red-700"><strong>Couldn't load responses.</strong> {error}</div>

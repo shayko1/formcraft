@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { getCurrentMemberId } from "../../../lib/session";
 import { getFormById } from "../../../lib/forms";
 import { listSubmissions, markExported } from "../../../lib/submissions";
+import { getVisibleSubmissionsLimit } from "../../../lib/plan";
 import { buildCsv } from "../../../lib/csv";
 
 // POST /api/submissions/export  { formId, ids } — CSV of selected rows + mark exported.
@@ -25,8 +26,12 @@ export const POST: APIRoute = async ({ request }) => {
   if (!form) return new Response("Not Found", { status: 404 });
   if (form.ownerId !== memberId) return new Response("Forbidden", { status: 403 });
 
+  // Only rows visible under the owner's plan are exportable (hidden overflow stays hidden).
+  const limit = await getVisibleSubmissionsLimit(memberId);
   const all = await listSubmissions(formId);
-  const selected = all.filter((s) => ids.includes(s.id));
+  const visible = Number.isFinite(limit) ? all.slice(0, limit) : all;
+  const idSet = new Set(ids);
+  const selected = visible.filter((s) => idSet.has(s.id));
 
   const headers = [
     ...form.fields.map((f) => ({ id: f.id, label: f.label })),
