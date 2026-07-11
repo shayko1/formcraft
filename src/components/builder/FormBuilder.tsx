@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   closestCenter,
   useSensor,
@@ -103,7 +104,9 @@ export default function FormBuilder(props: FormBuilderProps) {
   const debounce = useRef<ReturnType<typeof setTimeout>>();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // Delay so vertical scroll doesn't start a reorder on phones.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -316,16 +319,26 @@ export default function FormBuilder(props: FormBuilderProps) {
           </button>
           <a
             href={`/dashboard/forms/${props.formId}/submissions`}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            title="Responses"
+            aria-label="Responses"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-3"
           >
-            Responses
+            <IconRenderer name="Inbox" className="h-4 w-4" />
+            <span className="hidden sm:inline">Responses</span>
           </a>
           <button
             type="button"
             onClick={handlePublish}
-            className="rounded-lg bg-grad-brand px-4 py-1.5 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
+            className="rounded-lg bg-grad-brand px-3 py-1.5 text-sm font-bold text-white shadow-sm transition hover:opacity-90 sm:px-4"
           >
-            {published ? "Published · Get link" : "Publish"}
+            {published ? (
+              <>
+                <span className="sm:hidden">Link</span>
+                <span className="hidden sm:inline">Published · Get link</span>
+              </>
+            ) : (
+              "Publish"
+            )}
           </button>
         </div>
       </div>
@@ -374,13 +387,16 @@ export default function FormBuilder(props: FormBuilderProps) {
         </div>
       ) : (
       <div className="grid gap-4 p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-        {/* Palette */}
-        <aside className={tab === "build" ? "block" : "hidden lg:block"}>
+        {/* Desktop palette — hidden on mobile (mobile uses strip above canvas) */}
+        <aside className="hidden lg:block">
           <Palette onAdd={addField} />
         </aside>
 
-        {/* Canvas */}
+        {/* Canvas (+ mobile field strip) */}
         <main className={tab === "build" ? "block" : "hidden lg:block"}>
+          <div className="mb-3 lg:hidden">
+            <Palette onAdd={addField} layout="strip" />
+          </div>
           <div className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
               Form description
@@ -435,6 +451,14 @@ export default function FormBuilder(props: FormBuilderProps) {
             ].join(" ")}
           >
             <div className={tab === "settings" ? "block" : "hidden lg:block"}>
+              <button
+                type="button"
+                onClick={() => setTab("build")}
+                className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 lg:hidden"
+              >
+                <IconRenderer name="ArrowLeft" className="h-4 w-4" />
+                Fields
+              </button>
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Field settings
@@ -748,9 +772,12 @@ function Canvas({
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <IconRenderer name="Magnet" className="h-8 w-8" />
           </span>
-          <p className="mt-3 font-semibold text-slate-600">Drag a field here</p>
-          <p className="mt-1 text-sm text-slate-400">
-            or tap a field type on the left to add it
+          <p className="mt-3 font-semibold text-slate-600">Add your first field</p>
+          <p className="mt-1 text-sm text-slate-400 lg:hidden">
+            Tap a field type above to add it
+          </p>
+          <p className="mt-1 hidden text-sm text-slate-400 lg:block">
+            Drag a field here, or tap a type on the left
           </p>
         </div>
       ) : (

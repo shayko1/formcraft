@@ -60,7 +60,7 @@ export default function FieldCard({
         {...attributes}
         aria-label="Drag to reorder"
         onClick={(e) => e.stopPropagation()}
-        className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+        className="flex h-10 w-8 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 hover:text-slate-500 active:cursor-grabbing lg:h-8 lg:w-6 lg:text-slate-300"
       >
         <IconRenderer name="GripVertical" />
       </button>
@@ -89,7 +89,7 @@ export default function FieldCard({
         }}
         aria-label="Duplicate field"
         title="Duplicate"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-300 opacity-0 transition hover:bg-brand-50 hover:text-brand-600 group-hover:opacity-100 focus:opacity-100"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 lg:h-7 lg:w-7 lg:text-slate-300 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
         <IconRenderer name="Copy" />
       </button>
@@ -102,7 +102,7 @@ export default function FieldCard({
         }}
         aria-label="Delete field"
         title="Delete"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 focus:opacity-100"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500 lg:h-7 lg:w-7 lg:text-slate-300 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
         <IconRenderer name="X" />
       </button>
