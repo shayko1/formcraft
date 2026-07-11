@@ -106,8 +106,8 @@ export async function createForm(input: FormInput): Promise<Form> {
 export async function getFormById(id: string): Promise<Form | null> {
   try {
     const res = await adminItems.get(FORMS_COLLECTION, id);
-    const data = res.dataItem?.data ?? res.dataItem;
-    return data ? mapForm(data as Record<string, unknown>) : null;
+    const rec = toRecord(res);
+    return rec._id || rec.id ? mapForm(rec) : null;
   } catch {
     return null;
   }
