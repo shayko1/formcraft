@@ -6,6 +6,7 @@ import {
   DEFAULT_CANVAS_WIDTH,
   isDecorativeField,
   isDarkCardBackground,
+  resolveFieldBackground,
   usesCanvasLayout,
   validateFields,
 } from "../lib/form-schema";
@@ -487,16 +488,28 @@ export default function FormRenderer({
           {sorted.map((f) => {
             const l = f.layout;
             if (!l) return renderOneField(f, rowIndex, values, errors);
+            const fieldBg = resolveFieldBackground(f.style, { darkCard });
+            const hasFill =
+              !!fieldBg.backgroundColor || !!fieldBg.className;
             return (
               <div
                 key={f.id}
-                className="absolute overflow-hidden"
+                className={[
+                  "absolute overflow-hidden rounded-lg",
+                  hasFill ? "p-2" : "",
+                  fieldBg.className,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 style={{
                   left: l.x,
                   top: l.y,
                   width: l.w,
                   height: l.h,
                   zIndex: l.z,
+                  ...(fieldBg.backgroundColor
+                    ? { backgroundColor: fieldBg.backgroundColor }
+                    : {}),
                 }}
               >
                 {renderOneField(f, rowIndex, values, errors, { compact: true })}

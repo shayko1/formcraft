@@ -32,6 +32,43 @@ export interface FieldStyle {
   labelSize?: number;
   textColor?: string;
   fontSize?: number;
+  /**
+   * Field chrome fill.
+   * - undefined → default soft card (canvas)
+   * - `"none"` → transparent / no fill
+   * - hex/css color → custom fill
+   */
+  background?: string;
+}
+
+/** Quick picks for per-field background in Settings. */
+export const FIELD_BACKGROUND_PRESETS: { id: string; label: string; value: string | undefined }[] = [
+  { id: "default", label: "Default", value: undefined },
+  { id: "none", label: "None", value: "none" },
+  { id: "white", label: "White", value: "#ffffff" },
+  { id: "soft", label: "Soft", value: "#f8fafc" },
+  { id: "mist", label: "Mist", value: "#e2e8f0" },
+  { id: "ink", label: "Ink", value: "#0f172a" },
+];
+
+/** Resolve per-field chrome background for editor + public canvas. */
+export function resolveFieldBackground(
+  style: FieldStyle | undefined,
+  opts?: { darkCard?: boolean; /** Soft default fill (canvas editor). */ defaultChrome?: boolean },
+): { backgroundColor?: string; className: string } {
+  const raw = style?.background?.trim();
+  if (raw === "none" || raw === "transparent") {
+    return { backgroundColor: "transparent", className: "" };
+  }
+  if (raw) {
+    return { backgroundColor: raw, className: "" };
+  }
+  if (opts?.defaultChrome) {
+    return {
+      className: opts?.darkCard ? "bg-white/10" : "bg-white/90",
+    };
+  }
+  return { className: "" };
 }
 
 export interface FieldConfig {

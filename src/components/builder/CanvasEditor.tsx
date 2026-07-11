@@ -6,6 +6,7 @@ import {
   DEFAULT_THEME,
   FIELD_TYPES,
   isDarkCardBackground,
+  resolveFieldBackground,
   type FieldConfig,
   type FieldLayout,
   type FormTheme,
@@ -274,6 +275,10 @@ export default function CanvasEditor({
               if (!layout) return null;
               const isSel = f.id === selectedId;
               const meta = FIELD_TYPES[f.type] ?? FIELD_TYPES.text;
+              const fieldBg = resolveFieldBackground(f.style, {
+                darkCard,
+                defaultChrome: true,
+              });
               return (
                 <div
                   key={f.id}
@@ -320,9 +325,16 @@ export default function CanvasEditor({
                     }}
                     className={[
                       "h-full w-full touch-none overflow-hidden rounded-lg p-2",
-                      darkCard ? "bg-white/10" : "bg-white/90",
-                    ].join(" ")}
-                    style={{ touchAction: "none" }}
+                      fieldBg.className,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{
+                      touchAction: "none",
+                      ...(fieldBg.backgroundColor
+                        ? { backgroundColor: fieldBg.backgroundColor }
+                        : {}),
+                    }}
                   >
                     <FieldPreview field={f} theme={theme} />
                   </div>

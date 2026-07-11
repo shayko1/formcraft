@@ -1,5 +1,10 @@
 import * as LucideIcons from "lucide-react";
-import { FIELD_TYPES, isPhoneField, type FieldConfig } from "../../lib/form-schema";
+import {
+  FIELD_BACKGROUND_PRESETS,
+  FIELD_TYPES,
+  isPhoneField,
+  type FieldConfig,
+} from "../../lib/form-schema";
 
 function IconRenderer({ name }: { name: string }) {
   const Icon = (LucideIcons as any)[name];
@@ -176,6 +181,85 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
             </div>
           </div>
         )}
+
+        <div>
+          <label className={labelCls}>Field background</label>
+          <div className="flex flex-wrap gap-1.5">
+            {FIELD_BACKGROUND_PRESETS.map((p) => {
+              const current = field.style?.background;
+              const selected =
+                p.value === undefined
+                  ? current === undefined || current === ""
+                  : current === p.value;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      style: {
+                        ...field.style,
+                        background: p.value,
+                      },
+                    })
+                  }
+                  className={[
+                    "rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition",
+                    selected
+                      ? "border-brand-400 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="color"
+              value={
+                field.style?.background &&
+                field.style.background !== "none" &&
+                field.style.background !== "transparent" &&
+                field.style.background.startsWith("#")
+                  ? field.style.background
+                  : "#ffffff"
+              }
+              onChange={(e) =>
+                onChange({
+                  style: { ...field.style, background: e.target.value },
+                })
+              }
+              className="h-9 w-10 cursor-pointer rounded border border-slate-200 bg-white p-0.5"
+              aria-label="Custom field background"
+            />
+            <input
+              className={inputCls}
+              value={
+                field.style?.background &&
+                field.style.background !== "none" &&
+                field.style.background !== "transparent"
+                  ? field.style.background
+                  : ""
+              }
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                onChange({
+                  style: {
+                    ...field.style,
+                    background: v || undefined,
+                  },
+                });
+              }}
+              placeholder="Custom #hex or none"
+              dir="ltr"
+            />
+          </div>
+          <p className="mt-1 text-[11px] text-slate-400">
+            None removes the fill · custom overrides the default card behind this field
+          </p>
+        </div>
       </div>
 
       {field.type !== "heading" && field.type !== "image" && meta.hasPlaceholder && (
