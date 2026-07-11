@@ -8,8 +8,9 @@ import cloudProviderFetchAdapter from "@wix/cloud-provider-fetch-adapter";
 
 const isBuild = process.env.NODE_ENV === "production";
 
-// Public site URL — used for canonical links, sitemap, OG tags.
-const SITE_URL = process.env.PUBLIC_SITE_URL || "https://formcraft.wix-site-host.com";
+// Public site URL — the primary custom domain. Used for canonical links, sitemap,
+// and OG tags so search engines consolidate to formcraft.biz (not the wix-host URL).
+const SITE_URL = process.env.PUBLIC_SITE_URL || "https://formcraft.biz";
 
 export default defineConfig({
   site: SITE_URL,
