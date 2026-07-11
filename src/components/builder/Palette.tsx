@@ -98,21 +98,24 @@ export default function Palette({ onAdd, layout = "stack" }: PaletteProps) {
 
   if (strip) {
     return (
-      <div className="space-y-2">
+      <div className="w-full min-w-0 max-w-full">
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Tap to add a field
         </p>
-        <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]">
-          {available.map((meta) => (
-            <PaletteChip
-              key={meta.type}
-              type={meta.type}
-              label={meta.label}
-              icon={meta.icon}
-              onAdd={onAdd}
-              layout="strip"
-            />
-          ))}
+        {/* Outer locks width; inner flex is w-max so chips scroll instead of widening the page */}
+        <div className="mt-2 w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1 touch-pan-x">
+          <div className="flex w-max gap-2 pr-1">
+            {available.map((meta) => (
+              <PaletteChip
+                key={meta.type}
+                type={meta.type}
+                label={meta.label}
+                icon={meta.icon}
+                onAdd={onAdd}
+                layout="strip"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
