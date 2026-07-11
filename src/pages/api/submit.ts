@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { getFormById, updateForm } from "../../lib/forms";
 import { insertSubmission, existsWithValue } from "../../lib/submissions";
-import { validateFields, isEmptyValue, fieldsRequiringUnique } from "../../lib/form-schema";
+import { validateFields, isEmptyValue, fieldsRequiringUnique, isDecorativeField } from "../../lib/form-schema";
 
 // POST /api/submit  { formId, data } — public endpoint, no auth.
 export const POST: APIRoute = async ({ request }) => {
@@ -41,8 +41,10 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    // Only persist public field answers — strip unknown / internal keys.
-    const allowed = new Set(form.fields.map((f) => f.id));
+    // Only persist public field answers — strip unknown / decorative / internal keys.
+    const allowed = new Set(
+      form.fields.filter((f) => !isDecorativeField(f.type)).map((f) => f.id),
+    );
     const clean: Record<string, unknown> = {};
     for (const key of Object.keys(data)) {
       if (allowed.has(key)) clean[key] = data[key];

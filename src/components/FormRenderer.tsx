@@ -3,8 +3,13 @@ import {
   type FieldConfig,
   type FormTheme,
   DEFAULT_THEME,
+  DEFAULT_CANVAS_WIDTH,
+  isDecorativeField,
+  isDarkCardBackground,
+  usesCanvasLayout,
   validateFields,
 } from "../lib/form-schema";
+import { canvasHeight } from "../lib/canvas-snap";
 
 function trackOnce(formId: string, event: "view" | "start") {
   try {
@@ -84,6 +89,52 @@ async function postSubmission(
   }
 }
 
+function fieldLabelStyle(f: FieldConfig): React.CSSProperties {
+  return {
+    color: f.style?.labelColor || undefined,
+    fontSize: f.style?.labelSize ? `${f.style.labelSize}px` : undefined,
+  };
+}
+
+function CanvasStage({
+  width,
+  height,
+  children,
+}: {
+  width: number;
+  height: number;
+  children: React.ReactNode;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const avail = Math.max(200, el.clientWidth);
+      setScale(Math.min(1, avail / width));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [width]);
+
+  return (
+    <div ref={wrapRef} className="w-full min-w-0">
+      <div className="relative mx-auto" style={{ width: width * scale, height: height * scale }}>
+        <div
+          className="absolute start-0 top-0 origin-top-left"
+          style={{ width, minHeight: height, transform: `scale(${scale})` }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FormRenderer({
   formId,
   title,
@@ -101,9 +152,19 @@ export default function FormRenderer({
   const mergedTheme = { ...DEFAULT_THEME, ...theme };
   const multi = !!mergedTheme.allowMultipleEntries;
   const accent = mergedTheme.accent || DEFAULT_THEME.accent;
+  const canvas = usesCanvasLayout(mergedTheme, fields);
+  const darkCard = isDarkCardBackground(mergedTheme);
+  const artboardW = mergedTheme.canvasWidth ?? DEFAULT_CANVAS_WIDTH;
+  const artboardH = canvasHeight(fields, 400);
   const style = useMemo(
     () => ({ ["--accent" as string]: accent }) as React.CSSProperties,
     [accent],
+  );
+
+  // Inputs for submit (skip decorative)
+  const inputFields = useMemo(
+    () => fields.filter((f) => !isDecorativeField(f.type)),
+    [fields],
   );
 
   useEffect(() => {
@@ -155,7 +216,7 @@ export default function FormRenderer({
   const handleSubmit = async () => {
     if (preview) return;
     const nextErrors = rows.map((row) => {
-      const fieldErrors = validateFields(fields, row);
+      const fieldErrors = validateFields(inputFields, row);
       const map: Record<string, string> = {};
       for (const e of fieldErrors) map[e.id] = e.message;
       return map;
@@ -184,7 +245,6 @@ export default function FormRenderer({
       setMessage(
         `Saved ${saved} of ${results.length} responses. ${failed[0]?.ok === false ? failed[0].message : "Please try again."}`,
       );
-      // Drop successfully saved rows so a retry only re-sends failures.
       const remaining: Values[] = [];
       const remainingErrors: Record<string, string>[] = [];
       results.forEach((r, i) => {
@@ -233,135 +293,260 @@ export default function FormRenderer({
     );
   }
 
-  const renderFields = (rowIndex: number, values: Values, errors: Record<string, string>) => (
-    <div className="space-y-4">
-      {fields.map((f) => {
-        const dir = fieldDir(f, mergedTheme);
-        const err = errors[f.id];
-        const helpId = `${f.id}-r${rowIndex}-help`;
-        const radioName = `${f.id}__${rowIndex}`;
-        return (
-          <div key={f.id}>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              {f.label}
-              {f.required && <span className="text-red-500"> *</span>}
-            </label>
+  const renderOneField = (
+    f: FieldConfig,
+    rowIndex: number,
+    values: Values,
+    errors: Record<string, string>,
+    opts?: { compact?: boolean },
+  ) => {
+    const dir = fieldDir(f, mergedTheme);
+    const err = errors[f.id];
+    const helpId = `${f.id}-r${rowIndex}-help`;
+    const radioName = `${f.id}__${rowIndex}`;
+    const labelStyle = fieldLabelStyle(f);
+    const textStyle: React.CSSProperties = {
+      color: f.style?.textColor || undefined,
+      fontSize: f.style?.fontSize ? `${f.style.fontSize}px` : undefined,
+    };
 
-            {f.type === "file" ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
-                File uploads coming soon
-              </div>
-            ) : f.type === "textarea" ? (
-              <textarea
-                dir={dir}
-                rows={4}
-                disabled={preview}
-                placeholder={f.placeholder}
-                minLength={f.min}
-                maxLength={f.max}
-                value={(values[f.id] as string) ?? ""}
-                onFocus={markStarted}
-                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
-                className={inputCls(err)}
-                aria-invalid={!!err}
-                aria-describedby={f.helpText ? helpId : undefined}
-              />
-            ) : f.type === "select" ? (
-              <select
-                dir={dir}
-                disabled={preview}
-                value={(values[f.id] as string) ?? ""}
-                onFocus={markStarted}
-                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
-                className={inputCls(err)}
-                aria-invalid={!!err}
-              >
-                <option value="">{f.placeholder || "—"}</option>
-                {(f.options ?? []).map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            ) : f.type === "radio" ? (
-              <div className="space-y-1.5" role="radiogroup" aria-label={f.label}>
-                {(f.options ?? []).map((o) => (
-                  <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="radio"
-                      name={radioName}
-                      disabled={preview}
-                      checked={values[f.id] === o}
-                      onFocus={markStarted}
-                      onChange={() => setValue(rowIndex, f.id, o)}
-                      style={{ accentColor: "var(--accent)" }}
-                    />
-                    {o}
-                  </label>
-                ))}
-              </div>
-            ) : f.type === "checkbox" ? (
-              <div className="space-y-1.5" role="group" aria-label={f.label}>
-                {(f.options ?? []).map((o) => (
-                  <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
-                      disabled={preview}
-                      checked={
-                        Array.isArray(values[f.id]) &&
-                        (values[f.id] as string[]).includes(o)
-                      }
-                      onFocus={markStarted}
-                      onChange={() => toggleCheckbox(rowIndex, f.id, o)}
-                      style={{ accentColor: "var(--accent)" }}
-                    />
-                    {o}
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <input
-                type={inputType(f.type)}
-                inputMode={inputModeFor(f.type)}
-                dir={dir}
-                disabled={preview}
-                placeholder={f.placeholder}
-                min={f.type === "number" ? f.min : undefined}
-                max={f.type === "number" ? f.max : undefined}
-                minLength={f.type === "text" ? f.min : undefined}
-                maxLength={f.type === "text" ? f.max : undefined}
-                value={(values[f.id] as string) ?? ""}
-                onFocus={markStarted}
-                onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
-                className={inputCls(err)}
-                aria-invalid={!!err}
-                aria-describedby={f.helpText ? helpId : undefined}
-              />
-            )}
+    if (f.type === "heading") {
+      return (
+        <div
+          key={f.id}
+          className="font-extrabold leading-tight text-slate-900"
+          style={{
+            color: f.style?.labelColor || "#0f172a",
+            fontSize: f.style?.labelSize ? `${f.style.labelSize}px` : "28px",
+          }}
+        >
+          {f.label}
+        </div>
+      );
+    }
 
-            {f.helpText && (
-              <p id={helpId} className="mt-1 text-xs text-slate-400">
-                {f.helpText}
-              </p>
-            )}
-            {err && <p className="mt-1 text-xs font-medium text-red-500">{err}</p>}
+    if (f.type === "image") {
+      return (
+        <div key={f.id} className="h-full w-full overflow-hidden rounded-lg bg-slate-100">
+          {f.src ? (
+            <img
+              src={f.src}
+              alt={f.label || ""}
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          ) : null}
+        </div>
+      );
+    }
+
+    if (f.type === "file") {
+      return (
+        <div key={f.id}>
+          <label className="mb-1.5 block text-sm font-semibold text-slate-700" style={labelStyle}>
+            {f.label}
+          </label>
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
+            File uploads coming soon
           </div>
-        );
-      })}
+        </div>
+      );
+    }
+
+    return (
+      <div key={f.id} style={textStyle} className={opts?.compact ? "h-full" : undefined}>
+        <label
+          className={[
+            "mb-1.5 block font-semibold",
+            opts?.compact ? "text-xs" : "text-sm",
+            darkCard ? "text-slate-100" : "text-slate-700",
+          ].join(" ")}
+          style={labelStyle}
+        >
+          {f.label}
+          {f.required && <span className="text-red-500"> *</span>}
+        </label>
+
+        {f.type === "textarea" ? (
+          <textarea
+            dir={dir}
+            rows={opts?.compact ? 3 : 4}
+            disabled={preview}
+            placeholder={f.placeholder}
+            minLength={f.min}
+            maxLength={f.max}
+            value={(values[f.id] as string) ?? ""}
+            onFocus={markStarted}
+            onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+            className={inputCls(err)}
+            aria-invalid={!!err}
+            aria-describedby={f.helpText ? helpId : undefined}
+          />
+        ) : f.type === "select" ? (
+          <select
+            dir={dir}
+            disabled={preview}
+            value={(values[f.id] as string) ?? ""}
+            onFocus={markStarted}
+            onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+            className={inputCls(err)}
+            aria-invalid={!!err}
+          >
+            <option value="">{f.placeholder || "—"}</option>
+            {(f.options ?? []).map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        ) : f.type === "radio" ? (
+          <div className="space-y-1.5" role="radiogroup" aria-label={f.label}>
+            {(f.options ?? []).map((o) => (
+              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name={radioName}
+                  disabled={preview}
+                  checked={values[f.id] === o}
+                  onFocus={markStarted}
+                  onChange={() => setValue(rowIndex, f.id, o)}
+                  style={{ accentColor: "var(--accent)" }}
+                />
+                {o}
+              </label>
+            ))}
+          </div>
+        ) : f.type === "checkbox" ? (
+          <div className="space-y-1.5" role="group" aria-label={f.label}>
+            {(f.options ?? []).map((o) => (
+              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  disabled={preview}
+                  checked={
+                    Array.isArray(values[f.id]) && (values[f.id] as string[]).includes(o)
+                  }
+                  onFocus={markStarted}
+                  onChange={() => toggleCheckbox(rowIndex, f.id, o)}
+                  style={{ accentColor: "var(--accent)" }}
+                />
+                {o}
+              </label>
+            ))}
+          </div>
+        ) : (
+          <input
+            type={inputType(f.type)}
+            inputMode={inputModeFor(f.type)}
+            dir={dir}
+            disabled={preview}
+            placeholder={f.placeholder}
+            min={f.type === "number" ? f.min : undefined}
+            max={f.type === "number" ? f.max : undefined}
+            minLength={f.type === "text" ? f.min : undefined}
+            maxLength={f.type === "text" ? f.max : undefined}
+            value={(values[f.id] as string) ?? ""}
+            onFocus={markStarted}
+            onChange={(e) => setValue(rowIndex, f.id, e.target.value)}
+            className={inputCls(err)}
+            aria-invalid={!!err}
+            aria-describedby={f.helpText ? helpId : undefined}
+          />
+        )}
+
+        {f.helpText && (
+          <p id={helpId} className="mt-1 text-xs text-slate-400">
+            {f.helpText}
+          </p>
+        )}
+        {err && <p className="mt-1 text-xs font-medium text-red-500">{err}</p>}
+      </div>
+    );
+  };
+
+  const renderStackFields = (rowIndex: number, values: Values, errors: Record<string, string>) => (
+    <div className="space-y-4">
+      {fields.map((f) => renderOneField(f, rowIndex, values, errors))}
     </div>
   );
 
+  const renderCanvasFields = (rowIndex: number, values: Values, errors: Record<string, string>) => {
+    const sorted = [...fields].sort((a, b) => (a.layout?.z ?? 0) - (b.layout?.z ?? 0));
+    return (
+      <CanvasStage width={artboardW} height={artboardH}>
+        <div className="relative" style={{ width: artboardW, minHeight: artboardH }}>
+          {sorted.map((f) => {
+            const l = f.layout;
+            if (!l) return renderOneField(f, rowIndex, values, errors);
+            return (
+              <div
+                key={f.id}
+                className="absolute overflow-hidden"
+                style={{
+                  left: l.x,
+                  top: l.y,
+                  width: l.w,
+                  height: l.h,
+                  zIndex: l.z,
+                }}
+              >
+                {renderOneField(f, rowIndex, values, errors, { compact: true })}
+              </div>
+            );
+          })}
+        </div>
+      </CanvasStage>
+    );
+  };
+
   return (
-    <div style={style} dir={mergedTheme.dir} className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">{title}</h1>
-        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
-      </div>
+    <div
+      style={style}
+      dir={mergedTheme.dir}
+      className={["space-y-5", darkCard ? "text-slate-100" : ""].join(" ")}
+    >
+      {!canvas && (
+        <div>
+          <h1
+            className={[
+              "text-2xl font-extrabold",
+              darkCard ? "text-white" : "text-slate-900",
+            ].join(" ")}
+          >
+            {title}
+          </h1>
+          {description && (
+            <p className={["mt-1 text-sm", darkCard ? "text-slate-300" : "text-slate-500"].join(" ")}>
+              {description}
+            </p>
+          )}
+        </div>
+      )}
+
+      {canvas && (title || description) && (
+        <div className="px-1">
+          <h1
+            className={[
+              "text-xl font-extrabold sm:text-2xl",
+              darkCard ? "text-white" : "text-slate-900",
+            ].join(" ")}
+          >
+            {title}
+          </h1>
+          {description && (
+            <p className={["mt-1 text-sm", darkCard ? "text-slate-300" : "text-slate-500"].join(" ")}>
+              {description}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {rows.map((values, rowIndex) => {
           const errors = rowErrors[rowIndex] ?? {};
-          const body = renderFields(rowIndex, values, errors);
+          const body = canvas
+            ? renderCanvasFields(rowIndex, values, errors)
+            : renderStackFields(rowIndex, values, errors);
           if (!multi) return <div key={rowIndex}>{body}</div>;
           return (
             <div

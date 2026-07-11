@@ -4,8 +4,10 @@ import FormRenderer from "../../components/FormRenderer";
 import { getFormBySlug } from "../../lib/forms";
 import {
   DEFAULT_THEME,
-  resolveCardClass,
+  resolveCardAppearance,
   resolvePageBackground,
+  usesCanvasLayout,
+  isDarkCardBackground,
 } from "../../lib/form-schema";
 
 const { slug } = Astro.params;
@@ -14,13 +16,18 @@ const available = form && form.published;
 const theme = { ...DEFAULT_THEME, ...(form?.theme ?? {}) };
 const dir = theme.dir ?? "ltr";
 const page = resolvePageBackground(theme);
-const cardClass = resolveCardClass(theme);
+const card = resolveCardAppearance(theme);
+const darkCard = isDarkCardBackground(theme);
 const isInk = theme.pageBackground === "ink";
+const canvas = available ? usesCanvasLayout(theme, form!.fields) : false;
 const pageStyle = page.style
   ? Object.entries(page.style)
       .map(([k, v]) => `${k}:${v}`)
       .join(";")
   : undefined;
+const cardStyle = Object.entries(card.style)
+  .map(([k, v]) => `${k}:${v}`)
+  .join(";");
 ---
 <Layout
   title={available ? form!.title : "Form unavailable"}
@@ -31,9 +38,12 @@ const pageStyle = page.style
   bodyClass={page.bodyClass}
 >
   <div class="min-h-screen" style={pageStyle}>
-    <main class="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-4 py-10">
+    <main class:list={[
+      "mx-auto flex min-h-screen flex-col justify-center px-3 py-8 sm:px-4 sm:py-10",
+      canvas ? "max-w-3xl" : "max-w-xl",
+    ]}>
       {available ? (
-        <div class={cardClass}>
+        <div class:list={[card.className, darkCard && "[&_h1]:text-slate-50 [&_label]:text-slate-200 [&_p]:text-slate-300"]} style={cardStyle}>
           <FormRenderer
             client:load
             formId={form!.id}

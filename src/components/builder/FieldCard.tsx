@@ -9,10 +9,30 @@ function IconRenderer({ name, className }: { name: string; className?: string })
   return <Icon className={className || "h-4 w-4"} />;
 }
 
+/** Floating preview while dragging — no useSortable (must not share field ids). */
+export function FieldDragPreview({ field }: { field: FieldConfig }) {
+  const meta = FIELD_TYPES[field.type] ?? FIELD_TYPES.text;
+  return (
+    <div className="flex w-[360px] max-w-[90vw] cursor-grabbing items-center gap-3 rounded-xl border border-brand-400 bg-white p-3 shadow-2xl ring-2 ring-brand-100">
+      <span className="flex h-8 w-6 shrink-0 items-center justify-center text-slate-400">
+        <IconRenderer name="GripVertical" />
+      </span>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+        <IconRenderer name={meta.icon} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-slate-800">
+          {field.label || "Untitled"}
+        </div>
+        <div className="truncate text-xs text-slate-400">{meta.label}</div>
+      </div>
+    </div>
+  );
+}
+
 interface FieldCardProps {
   field: FieldConfig;
   selected: boolean;
-  /** Desktop drag-to-reorder. Off on mobile — use move buttons instead. */
   enableDrag?: boolean;
   index: number;
   total: number;
@@ -41,7 +61,7 @@ export default function FieldCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   const meta = FIELD_TYPES[field.type] ?? FIELD_TYPES.text;
@@ -61,20 +81,23 @@ export default function FieldCard({
       }}
       className={[
         "group flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm transition",
-        selected ? "border-brand-400 ring-2 ring-brand-200" : "border-slate-200 hover:border-slate-300",
+        enableDrag ? "cursor-grab active:cursor-grabbing" : "",
+        isDragging
+          ? "z-10 border-brand-300 bg-brand-50/50 shadow-md"
+          : selected
+            ? "border-brand-400 ring-2 ring-brand-200"
+            : "border-slate-200 hover:border-slate-300",
       ].join(" ")}
+      {...(enableDrag ? listeners : {})}
+      {...(enableDrag ? attributes : {})}
     >
       {enableDrag ? (
-        <button
-          type="button"
-          {...listeners}
-          {...attributes}
-          aria-label="Drag to reorder"
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+        <span
+          aria-hidden
+          className="flex h-9 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 group-hover:bg-slate-50 group-hover:text-slate-600"
         >
           <IconRenderer name="GripVertical" />
-        </button>
+        </span>
       ) : (
         <div className="flex shrink-0 flex-col gap-0.5">
           <button
@@ -126,9 +149,10 @@ export default function FieldCard({
           e.stopPropagation();
           onDuplicate();
         }}
+        onPointerDown={(e) => e.stopPropagation()}
         aria-label="Duplicate field"
         title="Duplicate"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 lg:h-7 lg:w-7 lg:text-slate-300 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
         <IconRenderer name="Copy" />
       </button>
@@ -139,9 +163,10 @@ export default function FieldCard({
           e.stopPropagation();
           onDelete();
         }}
+        onPointerDown={(e) => e.stopPropagation()}
         aria-label="Delete field"
         title="Delete"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500 lg:h-7 lg:w-7 lg:text-slate-300 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
         <IconRenderer name="X" />
       </button>

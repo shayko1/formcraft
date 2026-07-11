@@ -13,7 +13,26 @@ export type FieldType =
   | "checkbox"
   | "date"
   | "time"
-  | "file";
+  | "file"
+  | "image"
+  | "heading";
+
+/** Freeform canvas position (px). Present → public form uses absolute layout. */
+export interface FieldLayout {
+  x: number;
+  y: number;
+  w: number;
+  h?: number;
+  z: number;
+}
+
+/** Per-element visual style (labels, headings, decorative text). */
+export interface FieldStyle {
+  labelColor?: string;
+  labelSize?: number;
+  textColor?: string;
+  fontSize?: number;
+}
 
 export interface FieldConfig {
   id: string;
@@ -32,6 +51,16 @@ export interface FieldConfig {
    * on another response for the same form.
    */
   unique?: boolean;
+  /** Absolute canvas layout. Missing → auto-stacked when opening the editor. */
+  layout?: FieldLayout;
+  style?: FieldStyle;
+  /** Image URL (type === "image"). */
+  src?: string;
+}
+
+/** Decorative / non-input types — never submitted or validated. */
+export function isDecorativeField(type: FieldType): boolean {
+  return type === "image" || type === "heading" || type === "file";
 }
 
 /** Admin-only columns on responses — never shown on the public form. */
@@ -54,6 +83,9 @@ export type PageBackgroundPreset =
 
 export type CardStyle = "elevated" | "bordered" | "plain";
 
+/** `canvas` = freeform absolute layout; `stack` = classic vertical form. */
+export type LayoutMode = "canvas" | "stack";
+
 export interface FormTheme {
   accent: string; // hex color, drives buttons + focus rings
   dir: "rtl" | "ltr";
@@ -68,6 +100,12 @@ export interface FormTheme {
   allowDuplicateResponses?: boolean;
   pageBackground?: PageBackgroundPreset;
   cardStyle?: CardStyle;
+  /** Background of the form card itself (hex). Default white. */
+  cardBackground?: string;
+  /** Editor + public layout. Defaults to canvas for new forms. */
+  layoutMode?: LayoutMode;
+  /** Canvas artboard width in px (public + editor). */
+  canvasWidth?: number;
 }
 
 export const DEFAULT_THEME: FormTheme = {
@@ -81,7 +119,15 @@ export const DEFAULT_THEME: FormTheme = {
   allowDuplicateResponses: false,
   pageBackground: "slate",
   cardStyle: "elevated",
+  cardBackground: "#ffffff",
+  layoutMode: "stack",
+  canvasWidth: 640,
 };
+
+export const CANVAS_GRID = 8;
+export const CANVAS_SNAP_THRESHOLD = 6;
+export const DEFAULT_FIELD_WIDTH = 280;
+export const DEFAULT_CANVAS_WIDTH = 640;
 
 export const PAGE_BACKGROUNDS: {
   id: PageBackgroundPreset;
@@ -101,19 +147,30 @@ export const CARD_STYLES: { id: CardStyle; label: string; className: string }[] 
   {
     id: "elevated",
     label: "Elevated",
-    className:
-      "rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-100 sm:p-8",
+    className: "rounded-3xl p-6 shadow-xl shadow-slate-900/5 ring-1 ring-black/5 sm:p-8",
   },
   {
     id: "bordered",
     label: "Bordered",
-    className: "rounded-3xl bg-white p-6 ring-2 ring-slate-200 sm:p-8",
+    className: "rounded-3xl p-6 ring-2 ring-slate-200 sm:p-8",
   },
   {
     id: "plain",
     label: "Plain",
-    className: "rounded-2xl bg-white/90 p-6 sm:p-8",
+    className: "rounded-2xl p-6 sm:p-8",
   },
+];
+
+/** Quick presets for the form card fill (the white box around fields). */
+export const CARD_BACKGROUNDS: { id: string; label: string; color: string }[] = [
+  { id: "white", label: "White", color: "#ffffff" },
+  { id: "cream", label: "Cream", color: "#fffbeb" },
+  { id: "mist", label: "Mist", color: "#f8fafc" },
+  { id: "lavender", label: "Lavender", color: "#f5f3ff" },
+  { id: "mint", label: "Mint", color: "#ecfdf5" },
+  { id: "blush", label: "Blush", color: "#fff1f2" },
+  { id: "sky", label: "Sky", color: "#eff6ff" },
+  { id: "ink", label: "Ink", color: "#0f172a" },
 ];
 
 export function resolvePageBackground(theme: FormTheme): {
@@ -137,6 +194,28 @@ export function resolvePageBackground(theme: FormTheme): {
 export function resolveCardClass(theme: FormTheme): string {
   const id = theme.cardStyle ?? DEFAULT_THEME.cardStyle!;
   return (CARD_STYLES.find((c) => c.id === id) ?? CARD_STYLES[0]!).className;
+}
+
+/** Class + inline style for the form card (supports custom cardBackground). */
+export function resolveCardAppearance(theme: FormTheme): {
+  className: string;
+  style: Record<string, string>;
+} {
+  const bg = theme.cardBackground || DEFAULT_THEME.cardBackground || "#ffffff";
+  return {
+    className: resolveCardClass(theme),
+    style: { backgroundColor: bg },
+  };
+}
+
+/** Rough luminance check — dark card → light text helper for chrome. */
+export function isDarkCardBackground(theme: FormTheme): boolean {
+  const hex = (theme.cardBackground || "#ffffff").replace("#", "");
+  if (hex.length !== 6) return false;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 < 140;
 }
 
 // Metadata registry — one entry per field type. Rendering lives in the React
@@ -297,6 +376,34 @@ export const FIELD_TYPES: Record<FieldType, FieldTypeMeta> = {
       helpText: "File uploads coming soon",
     }),
   },
+  image: {
+    type: "image",
+    label: "Image",
+    icon: "Image",
+    hasOptions: false,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Image",
+      required: false,
+      src: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=640&q=80",
+      layout: { x: 40, y: 40, w: 240, h: 160, z: 1 },
+    }),
+  },
+  heading: {
+    type: "heading",
+    label: "Heading",
+    icon: "Heading",
+    hasOptions: false,
+    hasPlaceholder: false,
+    hasMinMax: false,
+    defaults: () => ({
+      label: "Section title",
+      required: false,
+      style: { labelColor: "#0f172a", labelSize: 28 },
+      layout: { x: 40, y: 40, w: 360, h: 48, z: 1 },
+    }),
+  },
 };
 
 export const FIELD_TYPE_LIST: FieldTypeMeta[] = Object.values(FIELD_TYPES);
@@ -311,7 +418,7 @@ export function isEmptyValue(v: unknown): boolean {
 /** Returns the ids of required fields that are missing in `data`. */
 export function missingRequired(fields: FieldConfig[], data: Record<string, unknown>): string[] {
   return fields
-    .filter((f) => f.type !== "file" && f.required && isEmptyValue(data[f.id]))
+    .filter((f) => !isDecorativeField(f.type) && f.required && isEmptyValue(data[f.id]))
     .map((f) => f.id);
 }
 
@@ -328,7 +435,7 @@ export function validateFields(
   const errors: FieldError[] = [];
 
   for (const f of fields) {
-    if (f.type === "file") continue;
+    if (isDecorativeField(f.type)) continue;
     const raw = data[f.id];
     const empty = isEmptyValue(raw);
 
@@ -396,10 +503,45 @@ export function fieldsRequiringUnique(
 ): FieldConfig[] {
   if (allowDuplicateResponses) return [];
   return fields.filter((f) => {
-    if (f.type === "file" || f.type === "checkbox") return false;
+    if (isDecorativeField(f.type) || f.type === "checkbox") return false;
     if (f.unique === true) return true;
     if (f.unique === false) return false;
     // Legacy default for older forms without the unique flag.
     return isPhoneField(f);
+  });
+}
+
+/** True when the form should render with absolute canvas positions. */
+export function usesCanvasLayout(theme: FormTheme, fields: FieldConfig[]): boolean {
+  if (theme.layoutMode === "stack") return false;
+  if (theme.layoutMode === "canvas") return true;
+  return fields.some((f) => f.layout != null);
+}
+
+/** Auto-place fields that lack layout into a stacked canvas column. */
+export function ensureCanvasLayouts(fields: FieldConfig[] | null | undefined): FieldConfig[] {
+  const list = Array.isArray(fields) ? fields : [];
+  let y = 24;
+  let z = 1;
+  const x = 40;
+  const w = DEFAULT_FIELD_WIDTH;
+  return list.map((f) => {
+    if (f.layout) {
+      z = Math.max(z, f.layout.z + 1);
+      return f;
+    }
+    const h =
+      f.type === "textarea"
+        ? 120
+        : f.type === "radio" || f.type === "checkbox"
+          ? 88
+          : f.type === "image"
+            ? 160
+            : f.type === "heading"
+              ? 48
+              : 72;
+    const layout: FieldLayout = { x, y, w: f.type === "heading" ? 360 : w, h, z: z++ };
+    y += h + 16;
+    return { ...f, layout };
   });
 }

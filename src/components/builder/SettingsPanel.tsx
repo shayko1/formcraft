@@ -66,16 +66,119 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
       </div>
 
       <div>
-        <label className={labelCls}>Label</label>
+        <label className={labelCls}>{field.type === "heading" ? "Heading text" : "Label"}</label>
         <input
           className={inputCls}
           value={field.label}
           onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="Field label"
+          placeholder={field.type === "heading" ? "Section title" : "Field label"}
         />
       </div>
 
-      {meta.hasPlaceholder && (
+      {field.type === "image" && (
+        <div>
+          <label className={labelCls}>Image URL</label>
+          <input
+            className={inputCls}
+            value={field.src ?? ""}
+            onChange={(e) => onChange({ src: e.target.value })}
+            placeholder="https://…"
+            dir="ltr"
+          />
+          <p className="mt-1 text-[11px] text-slate-400">Paste any public image link</p>
+        </div>
+      )}
+
+      {/* Style controls — color & size */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-3">
+        <p className={labelCls + " mb-0"}>Appearance</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className={labelCls}>
+              {field.type === "heading" ? "Text color" : "Label color"}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={field.style?.labelColor || "#334155"}
+                onChange={(e) =>
+                  onChange({ style: { ...field.style, labelColor: e.target.value } })
+                }
+                className="h-9 w-10 cursor-pointer rounded border border-slate-200 bg-white p-0.5"
+              />
+              <input
+                className={inputCls}
+                value={field.style?.labelColor || ""}
+                onChange={(e) =>
+                  onChange({
+                    style: {
+                      ...field.style,
+                      labelColor: e.target.value || undefined,
+                    },
+                  })
+                }
+                placeholder="#334155"
+                dir="ltr"
+              />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>
+              {field.type === "heading" ? "Text size" : "Label size"}
+            </label>
+            <input
+              type="number"
+              min={10}
+              max={72}
+              className={inputCls}
+              value={field.style?.labelSize ?? (field.type === "heading" ? 28 : 13)}
+              onChange={(e) =>
+                onChange({
+                  style: {
+                    ...field.style,
+                    labelSize: e.target.value === "" ? undefined : Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </div>
+        </div>
+        {field.type !== "heading" && field.type !== "image" && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className={labelCls}>Body color</label>
+              <input
+                type="color"
+                value={field.style?.textColor || "#0f172a"}
+                onChange={(e) =>
+                  onChange({ style: { ...field.style, textColor: e.target.value } })
+                }
+                className="h-9 w-full cursor-pointer rounded border border-slate-200 bg-white p-0.5"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Body size</label>
+              <input
+                type="number"
+                min={10}
+                max={32}
+                className={inputCls}
+                value={field.style?.fontSize ?? 14}
+                onChange={(e) =>
+                  onChange({
+                    style: {
+                      ...field.style,
+                      fontSize: e.target.value === "" ? undefined : Number(e.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {field.type !== "heading" && field.type !== "image" && meta.hasPlaceholder && (
         <div>
           <label className={labelCls}>Placeholder</label>
           <input
@@ -87,6 +190,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
         </div>
       )}
 
+      {field.type !== "heading" && field.type !== "image" && (
       <div>
         <label className={labelCls}>Help text</label>
         <input
@@ -96,6 +200,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           placeholder="Optional hint below the field"
         />
       </div>
+      )}
 
       {meta.hasOptions && (
         <div>
@@ -188,6 +293,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
         </div>
       )}
 
+      {field.type !== "heading" && field.type !== "image" && (
       <div>
         <label className={labelCls}>Text direction</label>
         <div className="flex gap-2">
@@ -208,7 +314,9 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           ))}
         </div>
       </div>
+      )}
 
+      {field.type !== "heading" && field.type !== "image" && (
       <label className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
         <span className="text-sm font-medium text-slate-700">Required field</span>
         <input
@@ -218,8 +326,12 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           className="h-4 w-4 accent-brand-600"
         />
       </label>
+      )}
 
-      {field.type !== "file" && field.type !== "checkbox" && (
+      {field.type !== "file" &&
+        field.type !== "checkbox" &&
+        field.type !== "heading" &&
+        field.type !== "image" && (
         <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
           <span>
             <span className="block text-sm font-medium text-slate-700">

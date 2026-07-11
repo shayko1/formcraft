@@ -1,7 +1,6 @@
 ---
 import Layout from "../../../components/Layout.astro";
 import DashboardHeader from "../../../components/DashboardHeader.astro";
-import TemplatePicker, { type TemplateCard } from "../../../components/TemplatePicker";
 import UpgradeButton from "../../../components/UpgradeButton";
 import { getCurrentMemberId, loginRedirect } from "../../../lib/session";
 import { getQuotaStatus } from "../../../lib/plan";
@@ -10,31 +9,89 @@ import { TEMPLATES } from "../../../lib/templates";
 const memberId = await getCurrentMemberId();
 if (!memberId) return Astro.redirect(loginRedirect(Astro.url.pathname));
 
-// Enforce the form cap before showing templates (the API enforces it too).
 const quota = await getQuotaStatus(memberId);
+const errorParam = Astro.url.searchParams.get("error");
+const layoutMode = Astro.url.searchParams.get("mode") === "canvas" ? "canvas" : "stack";
 
-const cards: TemplateCard[] = TEMPLATES.map((t) => ({
-  id: t.id,
-  name: t.name,
-  description: t.description,
-  icon: t.icon,
-  fieldCount: t.fields.length,
-}));
+const iconPaths: Record<string, string> = {
+  Car: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>`,
+  PartyPopper: `<path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12L18 10 9.06 4.28a2.9 2.9 0 0 0-1.96-3.12L5 0"/><path d="m7 10 5 5"/><path d="m12 15 5-5"/>`,
+  Mail: `<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>`,
+  Wrench: `<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>`,
+  Star: `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>`,
+  Sparkles: `<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>`,
+};
 ---
 <Layout title="New form" noindex bodyClass="bg-slate-50 text-slate-900">
   <DashboardHeader />
   <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
     <div class="mb-6">
       <a href="/dashboard" class="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         Back to my forms
       </a>
       <h1 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">New form</h1>
-      <p class="mt-1 text-sm text-slate-500">Pick a template. You can change everything later.</p>
+      <p class="mt-1 text-sm text-slate-500">Pick a builder mode, then a template. You can switch later in Design.</p>
     </div>
 
+    {errorParam && (
+      <p class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        {errorParam}
+      </p>
+    )}
+
     {quota.canCreateForm ? (
-      <TemplatePicker client:load templates={cards} />
+      <>
+        <div class="mb-6 flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <a
+            href="/dashboard/forms/new?mode=stack"
+            class:list={[
+              "flex flex-1 flex-col rounded-lg px-4 py-3 text-start transition",
+              layoutMode === "stack"
+                ? "bg-white text-brand-700 shadow-sm ring-1 ring-brand-200"
+                : "text-slate-500 hover:text-slate-700",
+            ]}
+          >
+            <span class="text-sm font-bold">Simple form</span>
+            <span class="mt-0.5 text-xs text-slate-400">Stacked fields · control look with theme</span>
+          </a>
+          <a
+            href="/dashboard/forms/new?mode=canvas"
+            class:list={[
+              "flex flex-1 flex-col rounded-lg px-4 py-3 text-start transition",
+              layoutMode === "canvas"
+                ? "bg-white text-brand-700 shadow-sm ring-1 ring-brand-200"
+                : "text-slate-500 hover:text-slate-700",
+            ]}
+          >
+            <span class="text-sm font-bold">Freeform canvas</span>
+            <span class="mt-0.5 text-xs text-slate-400">Drag anywhere · overlap · images</span>
+          </a>
+        </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {TEMPLATES.map((t) => (
+          <form method="POST" action="/api/forms" class="h-full">
+            <input type="hidden" name="templateId" value={t.id} />
+            <input type="hidden" name="layoutMode" value={layoutMode} />
+            <button
+              type="submit"
+              class="group flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 text-start shadow-sm transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
+            >
+              <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={iconPaths[t.icon] ?? iconPaths.Sparkles} />
+              </span>
+              <h3 class="mt-4 text-base font-bold text-slate-900">{t.name}</h3>
+              <p class="mt-1 flex-1 text-sm leading-relaxed text-slate-500">{t.description}</p>
+              <span class="mt-4 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-600">
+                {t.fields.length} fields · Use template
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </span>
+            </button>
+          </form>
+        ))}
+      </div>
+      </>
     ) : (
       <div class="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
         <span class="text-4xl">🔒</span>

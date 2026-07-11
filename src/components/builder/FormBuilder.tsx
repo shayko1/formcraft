@@ -23,17 +23,23 @@ import {
   DEFAULT_THEME,
   PAGE_BACKGROUNDS,
   CARD_STYLES,
+  CARD_BACKGROUNDS,
   resolvePageBackground,
-  resolveCardClass,
+  resolveCardAppearance,
+  ensureCanvasLayouts,
   type FieldConfig,
+  type FieldLayout,
   type FieldType,
   type FormTheme,
   type InternalFieldConfig,
+  type LayoutMode,
   type PageBackgroundPreset,
   type CardStyle,
 } from "../../lib/form-schema";
+import { nextDropLayout } from "../../lib/canvas-snap";
 import Palette from "./Palette";
-import FieldCard from "./FieldCard";
+import CanvasEditor from "./CanvasEditor";
+import FieldCard, { FieldDragPreview } from "./FieldCard";
 import SettingsPanel from "./SettingsPanel";
 import InternalFieldsEditor from "./InternalFieldsEditor";
 import FormRenderer from "../FormRenderer";
@@ -79,13 +85,22 @@ type RightPane = "edit" | "live";
 export default function FormBuilder(props: FormBuilderProps) {
   const [title, setTitle] = useState(props.initialTitle);
   const [description, setDescription] = useState(props.initialDescription);
-  const [fields, setFields] = useState<FieldConfig[]>(props.initialFields);
+  const initialMode: LayoutMode =
+    props.initialTheme?.layoutMode === "stack" || props.initialTheme?.layoutMode === "canvas"
+      ? props.initialTheme.layoutMode
+      : props.initialFields?.some((f) => f.layout != null)
+        ? "canvas"
+        : "stack";
+  const [fields, setFields] = useState<FieldConfig[]>(() =>
+    initialMode === "canvas" ? ensureCanvasLayouts(props.initialFields) : props.initialFields ?? [],
+  );
   const [internalFields, setInternalFields] = useState<InternalFieldConfig[]>(
     props.initialInternalFields ?? [],
   );
   const [theme, setTheme] = useState<FormTheme>({
     ...DEFAULT_THEME,
     ...(props.initialTheme ?? {}),
+    layoutMode: initialMode,
   });
   const [published, setPublished] = useState(props.initialPublished);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -98,29 +113,19 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [rightPane, setRightPane] = useState<RightPane>("edit");
   const [fullPreview, setFullPreview] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isNarrow, setIsNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches,
-  );
 
   const firstRender = useRef(true);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
+  const isCanvas = theme.layoutMode === "canvas";
 
-  // Pointer for desktop drag; mobile reordering uses ↑↓ (enableDrag=false), not touch DnD.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    const sync = () => setIsNarrow(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
   const selected = fields.find((f) => f.id === selectedId) ?? null;
   const publicUrl = `${props.origin}/f/${props.slug}`;
+  const draggingField = activeId ? fields.find((f) => f.id === activeId) : null;
 
   // Debounced autosave whenever the form content changes.
   useEffect(() => {
@@ -156,7 +161,14 @@ export default function FormBuilder(props: FormBuilderProps) {
       const res = await fetch(`/api/forms/${props.formId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, fields, internalFields, theme, ...extra }),
+        body: JSON.stringify({
+          title,
+          description,
+          fields,
+          internalFields,
+          theme,
+          ...extra,
+        }),
       });
       setSave(res.ok ? "saved" : "error");
     } catch {
@@ -164,12 +176,30 @@ export default function FormBuilder(props: FormBuilderProps) {
     }
   }
 
-  const selectField = (id: string) => {
+  /** Canvas: stay on Build. Simple list: jump to Settings on mobile. */
+  const selectField = (id: string | null) => {
+    setSelectedId(id);
+    if (!id) return;
+    setRightPane("edit");
+    if (
+      theme.layoutMode !== "canvas" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 1023px)").matches
+    ) {
+      setTab("settings");
+    }
+  };
+
+  const openFieldSettings = (id: string) => {
     setSelectedId(id);
     setRightPane("edit");
-    // On narrow screens, jump to settings so the user can edit immediately.
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-      setTab("settings");
+    setTab("settings");
+  };
+
+  const setLayoutMode = (mode: LayoutMode) => {
+    setTheme((t) => ({ ...t, layoutMode: mode }));
+    if (mode === "canvas") {
+      setFields((prev) => ensureCanvasLayouts(prev));
     }
   };
 
@@ -185,14 +215,24 @@ export default function FormBuilder(props: FormBuilderProps) {
 
   const addField = (type: FieldType) => {
     if (FIELD_TYPES[type]?.comingSoon) return;
-    const f = makeField(type);
-    setFields((prev) => [...prev, f]);
-    selectField(f.id);
+    setFields((prev) => {
+      const base = makeField(type);
+      const f: FieldConfig =
+        theme.layoutMode === "canvas"
+          ? { ...base, layout: base.layout ?? nextDropLayout(prev, type) }
+          : base;
+      setTimeout(() => selectField(f.id), 0);
+      return [...prev, f];
+    });
   };
 
   const updateSelected = (patch: Partial<FieldConfig>) => {
     if (!selectedId) return;
     setFields((prev) => prev.map((f) => (f.id === selectedId ? { ...f, ...patch } : f)));
+  };
+
+  const updateLayout = (id: string, layout: FieldLayout) => {
+    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, layout } : f)));
   };
 
   const deleteField = (id: string) => {
@@ -211,17 +251,47 @@ export default function FormBuilder(props: FormBuilderProps) {
     setFields((prev) => {
       const idx = prev.findIndex((f) => f.id === id);
       if (idx === -1) return prev;
-      const src = prev[idx];
+      const src = prev[idx]!;
       const copy: FieldConfig = {
         ...src,
         id: fid(),
         label: `${src.label} (copy)`,
         options: src.options ? [...src.options] : undefined,
+        style: src.style ? { ...src.style } : undefined,
+        layout:
+          theme.layoutMode === "canvas"
+            ? src.layout
+              ? { ...src.layout, x: src.layout.x + 24, y: src.layout.y + 24, z: (src.layout.z ?? 1) + 1 }
+              : nextDropLayout(prev, src.type)
+            : undefined,
       };
+      if (theme.layoutMode === "canvas") {
+        setTimeout(() => selectField(copy.id), 0);
+        return [...prev, copy];
+      }
       const next = [...prev];
       next.splice(idx + 1, 0, copy);
       setTimeout(() => selectField(copy.id), 0);
       return next;
+    });
+  };
+
+  const bringForward = (id: string) => {
+    setFields((prev) => {
+      const maxZ = prev.reduce((m, f) => Math.max(m, f.layout?.z ?? 0), 0);
+      return prev.map((f) =>
+        f.id === id && f.layout ? { ...f, layout: { ...f.layout, z: maxZ + 1 } } : f,
+      );
+    });
+  };
+
+  const sendBackward = (id: string) => {
+    setFields((prev) => {
+      const minZ = prev.reduce((m, f) => Math.min(m, f.layout?.z ?? 0), Infinity);
+      const nextZ = Number.isFinite(minZ) ? minZ - 1 : 0;
+      return prev.map((f) =>
+        f.id === id && f.layout ? { ...f, layout: { ...f.layout, z: nextZ } } : f,
+      );
     });
   };
 
@@ -235,24 +305,36 @@ export default function FormBuilder(props: FormBuilderProps) {
     if (active.data.current?.source === "palette") {
       const type = active.data.current.fieldType as FieldType;
       if (FIELD_TYPES[type]?.comingSoon) return;
-      const nf = makeField(type);
       setFields((prev) => {
-        // Drop on a field → insert before it; drop on canvas / empty → append.
+        const base = makeField(type);
+        const nf: FieldConfig =
+          theme.layoutMode === "canvas"
+            ? { ...base, layout: base.layout ?? nextDropLayout(prev, type) }
+            : base;
+        if (theme.layoutMode === "canvas") {
+          setTimeout(() => selectField(nf.id), 0);
+          return [...prev, nf];
+        }
         const overIdx = prev.findIndex((f) => f.id === over.id);
         const idx = overIdx === -1 ? prev.length : overIdx;
         const next = [...prev];
         next.splice(idx, 0, nf);
+        setTimeout(() => selectField(nf.id), 0);
         return next;
       });
-      selectField(nf.id);
       return;
     }
 
-    if (active.id !== over.id && over.id !== "canvas") {
+    // Simple list reorder
+    if (theme.layoutMode !== "canvas" && String(active.id) !== String(over.id)) {
       setFields((prev) => {
         const oldIdx = prev.findIndex((f) => f.id === active.id);
+        if (oldIdx === -1) return prev;
+        if (over.id === "canvas") {
+          return arrayMove(prev, oldIdx, prev.length - 1);
+        }
         const newIdx = prev.findIndex((f) => f.id === over.id);
-        return oldIdx === -1 || newIdx === -1 ? prev : arrayMove(prev, oldIdx, newIdx);
+        return newIdx === -1 ? prev : arrayMove(prev, oldIdx, newIdx);
       });
     }
   };
@@ -296,8 +378,9 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      <div className="flex min-h-0 flex-col lg:h-dvh lg:overflow-hidden">
+      {/* Top bar — stays visible */}
+      <div className="sticky top-0 z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href="/dashboard"
@@ -362,8 +445,8 @@ export default function FormBuilder(props: FormBuilderProps) {
         </div>
       </div>
 
-      {/* Mobile tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
+      {/* Mobile tabs — sticky under top bar */}
+      <div className="sticky top-[3.25rem] z-20 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -393,7 +476,10 @@ export default function FormBuilder(props: FormBuilderProps) {
           ].join(" ")}
           style={resolvePageBackground(theme).style as React.CSSProperties | undefined}
         >
-          <div className={["mx-auto max-w-lg", resolveCardClass(theme)].join(" ")}>
+          <div
+            className={["mx-auto max-w-lg", resolveCardAppearance(theme).className].join(" ")}
+            style={resolveCardAppearance(theme).style as React.CSSProperties}
+          >
             <FormRenderer
               formId={props.formId}
               title={title}
@@ -405,18 +491,24 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div className="grid w-full min-w-0 grid-cols-1 gap-4 p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-        {/* Desktop palette — hidden on mobile (mobile uses strip above canvas) */}
-        <aside className="hidden min-w-0 lg:block">
+      <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-4 p-3 sm:p-4 lg:min-h-0 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4">
+        {/* Desktop palette — independent scroll */}
+        <aside className="hidden min-w-0 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           <Palette onAdd={addField} />
         </aside>
 
-        {/* Canvas (+ mobile field strip) */}
-        <main className={["min-w-0", tab === "build" ? "block" : "hidden lg:block"].join(" ")}>
-          <div className="mb-3 w-full min-w-0 lg:hidden">
+        {/* Canvas column — stays on screen while Settings scrolls beside it */}
+        <main
+          className={[
+            "min-w-0",
+            tab === "build" ? "block" : "hidden lg:block",
+            "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
+          ].join(" ")}
+        >
+          <div className="mb-3 w-full min-w-0 shrink-0 lg:hidden">
             <Palette onAdd={addField} layout="strip" />
           </div>
-          <div className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 shrink-0 rounded-xl border border-slate-200 bg-white p-4">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
               Form description
             </label>
@@ -428,24 +520,125 @@ export default function FormBuilder(props: FormBuilderProps) {
               className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </div>
-          <Canvas
-            fields={fields}
-            selectedId={selectedId}
-            enableDrag={!isNarrow}
-            onSelect={selectField}
-            onDelete={deleteField}
-            onDuplicate={duplicateField}
-            onMove={moveField}
-          />
+
+          {/* Layout mode switcher */}
+          <div className="mb-3 flex shrink-0 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {(
+              [
+                {
+                  id: "stack" as const,
+                  label: "Simple form",
+                  hint: "Stacked fields · theme controls design",
+                  icon: "Rows3",
+                },
+                {
+                  id: "canvas" as const,
+                  label: "Freeform",
+                  hint: "Drag anywhere · overlap · images",
+                  icon: "Move",
+                },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setLayoutMode(m.id)}
+                className={[
+                  "flex flex-1 flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-start transition",
+                  theme.layoutMode === m.id
+                    ? "bg-white text-brand-700 shadow-sm ring-1 ring-brand-200"
+                    : "text-slate-500 hover:text-slate-700",
+                ].join(" ")}
+              >
+                <span className="flex items-center gap-1.5 text-xs font-bold">
+                  <IconRenderer name={m.icon} className="h-3.5 w-3.5" />
+                  {m.label}
+                </span>
+                <span className="hidden text-[10px] font-medium text-slate-400 sm:block">{m.hint}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Canvas fills leftover height and stays put while Settings scrolls */}
+          <div className="min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain">
+            {isCanvas ? (
+              <CanvasEditor
+                fields={fields}
+                selectedId={selectedId}
+                theme={theme}
+                onSelect={selectField}
+                onUpdateLayout={updateLayout}
+                onDelete={deleteField}
+                onDuplicate={duplicateField}
+                onBringForward={bringForward}
+                onSendBackward={sendBackward}
+                onEditSettings={openFieldSettings}
+              />
+            ) : (
+              <StackCanvas
+                fields={fields}
+                selectedId={selectedId}
+                enableDrag
+                onSelect={(id) => selectField(id)}
+                onDelete={deleteField}
+                onDuplicate={duplicateField}
+                onMove={moveField}
+              />
+            )}
+          </div>
         </main>
 
-        {/* Right column: Edit | Live tabs (desktop); mobile uses main tabs */}
+        {/* Right column — scrolls independently so canvas stays on screen */}
         <aside
           className={[
             "min-w-0 space-y-3",
             tab === "build" ? "hidden lg:block" : "block",
+            "lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain",
           ].join(" ")}
         >
+          {/* Mobile: keep a peek of the form while editing settings */}
+          {(tab === "settings" || tab === "design") && (
+            <div className="sticky top-[6.75rem] z-10 -mx-1 mb-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm lg:hidden">
+              <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  Form preview
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTab("build")}
+                  className="text-[11px] font-bold text-brand-600"
+                >
+                  Edit canvas
+                </button>
+              </div>
+              <div
+                className={[
+                  "max-h-36 overflow-hidden rounded-lg p-2",
+                  resolvePageBackground(theme).bodyClass,
+                ].join(" ")}
+                style={resolvePageBackground(theme).style as React.CSSProperties | undefined}
+              >
+                <div
+                  className={resolveCardAppearance(theme)
+                    .className.replace("sm:p-8", "p-3")
+                    .replace("p-6", "p-3")
+                    .replace("rounded-3xl", "rounded-xl")}
+                  style={resolveCardAppearance(theme).style as React.CSSProperties}
+                >
+                  <div className="pointer-events-none origin-top scale-[0.85]">
+                    <FormRenderer
+                      formId={props.formId}
+                      title={title}
+                      description={description}
+                      fields={fields}
+                      theme={theme}
+                      preview
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="hidden gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 lg:flex">
             {(
               [
@@ -502,6 +695,37 @@ export default function FormBuilder(props: FormBuilderProps) {
 
             <div className={tab === "design" ? "block" : "hidden lg:block"}>
               <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Builder mode
+                </p>
+                <div className="mb-4 flex gap-2">
+                  {(
+                    [
+                      { id: "stack" as const, label: "Simple form" },
+                      { id: "canvas" as const, label: "Freeform" },
+                    ] as const
+                  ).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setLayoutMode(m.id)}
+                      className={[
+                        "flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition",
+                        theme.layoutMode === m.id
+                          ? "border-brand-400 bg-brand-50 text-brand-700"
+                          : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mb-3 text-[11px] leading-relaxed text-slate-400">
+                  {isCanvas
+                    ? "Freeform: place fields anywhere, overlap, images, and per-field text style."
+                    : "Simple form: vertical list. Control look with accent, background, and card style below."}
+                </p>
+
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Accent color
                 </p>
@@ -664,6 +888,43 @@ export default function FormBuilder(props: FormBuilderProps) {
                 </div>
 
                 <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Form card background
+                </p>
+                <p className="mb-2 text-[11px] text-slate-400">
+                  The form itself (the card around your fields)
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {CARD_BACKGROUNDS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      title={c.label}
+                      aria-label={c.label}
+                      onClick={() => setTheme((t) => ({ ...t, cardBackground: c.color }))}
+                      className={[
+                        "h-8 w-8 rounded-full border border-slate-200 ring-2 ring-offset-2 transition",
+                        (theme.cardBackground || "#ffffff").toLowerCase() === c.color.toLowerCase()
+                          ? "ring-slate-400"
+                          : "ring-transparent",
+                      ].join(" ")}
+                      style={{ background: c.color }}
+                    />
+                  ))}
+                  <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-500">
+                    <input
+                      type="color"
+                      value={theme.cardBackground || "#ffffff"}
+                      onChange={(e) =>
+                        setTheme((t) => ({ ...t, cardBackground: e.target.value }))
+                      }
+                      className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                      aria-label="Custom form card color"
+                    />
+                    Custom
+                  </label>
+                </div>
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Card style
                 </p>
                 <div className="flex gap-2">
@@ -719,7 +980,12 @@ export default function FormBuilder(props: FormBuilderProps) {
                   resolvePageBackground(theme).style as React.CSSProperties | undefined
                 }
               >
-                <div className={resolveCardClass(theme).replace("sm:p-8", "sm:p-4").replace("p-6", "p-4")}>
+                <div
+                  className={resolveCardAppearance(theme)
+                    .className.replace("sm:p-8", "sm:p-4")
+                    .replace("p-6", "p-4")}
+                  style={resolveCardAppearance(theme).style as React.CSSProperties}
+                >
                   <FormRenderer
                     formId={props.formId}
                     title={title}
@@ -736,15 +1002,13 @@ export default function FormBuilder(props: FormBuilderProps) {
       </div>
       )}
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeId && activeId.startsWith("palette:") ? (
-          <div className="rounded-xl border border-brand-300 bg-white px-3 py-2.5 text-sm font-medium text-brand-700 shadow-lg">
+          <div className="rounded-xl border border-brand-300 bg-white px-3 py-2.5 text-sm font-semibold text-brand-700 shadow-xl">
             {FIELD_TYPES[activeId.replace("palette:", "") as FieldType]?.label}
           </div>
-        ) : activeId ? (
-          <div className="rounded-xl border border-brand-300 bg-white p-3 text-sm font-semibold text-slate-800 shadow-lg">
-            {fields.find((f) => f.id === activeId)?.label ?? "Field"}
-          </div>
+        ) : draggingField ? (
+          <FieldDragPreview field={draggingField} />
         ) : null}
       </DragOverlay>
 
@@ -798,11 +1062,12 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       )}
+      </div>
     </DndContext>
   );
 }
 
-function Canvas({
+function StackCanvas({
   fields,
   selectedId,
   enableDrag,
@@ -835,9 +1100,7 @@ function Canvas({
             <IconRenderer name="Magnet" className="h-8 w-8" />
           </span>
           <p className="mt-3 font-semibold text-slate-600">Add your first field</p>
-          <p className="mt-1 text-sm text-slate-400 lg:hidden">
-            Tap a field type above to add it
-          </p>
+          <p className="mt-1 text-sm text-slate-400 lg:hidden">Tap a field type above to add it</p>
           <p className="mt-1 hidden text-sm text-slate-400 lg:block">
             Drag a field here, or tap a type on the left
           </p>
