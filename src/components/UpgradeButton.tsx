@@ -36,8 +36,13 @@ export default function UpgradeButton({
   };
 
   return (
-    <span className="inline-flex flex-col items-stretch gap-1">
-      <button onClick={upgrade} disabled={loading} className={className}>
+    <span className="flex w-full flex-col items-stretch gap-1">
+      <button
+        type="button"
+        onClick={upgrade}
+        disabled={loading}
+        className={["inline-flex w-full items-center justify-center", className].filter(Boolean).join(" ")}
+      >
         {loading ? "Starting checkout…" : label}
       </button>
       {error && <span className="text-xs font-medium text-red-600">{error}</span>}
