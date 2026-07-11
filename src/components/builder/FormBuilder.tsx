@@ -350,93 +350,101 @@ export default function FormBuilder(props: FormBuilderProps) {
           />
         </main>
 
-        {/* Settings + design + preview */}
-        <aside className="space-y-4">
-          <div className={tab === "settings" ? "block" : "hidden lg:block"}>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Field settings
-              </p>
-              <SettingsPanel field={selected} onChange={updateSelected} />
+        {/* Settings + design (scrollable) above sticky live preview */}
+        <aside className="lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-5.5rem)] lg:flex-col lg:gap-4">
+          <div className="space-y-4 lg:max-h-[40vh] lg:min-h-0 lg:shrink-0 lg:overflow-y-auto">
+            <div className={tab === "settings" ? "block" : "hidden lg:block"}>
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Field settings
+                </p>
+                <SettingsPanel field={selected} onChange={updateSelected} />
+              </div>
+            </div>
+
+            <div className={tab === "design" ? "block" : "hidden lg:block"}>
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Accent color
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {ACCENTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setTheme((t) => ({ ...t, accent: c }))}
+                      aria-label={`Accent ${c}`}
+                      className={[
+                        "h-7 w-7 rounded-full ring-2 ring-offset-2 transition",
+                        theme.accent === c ? "ring-slate-400" : "ring-transparent",
+                      ].join(" ")}
+                      style={{ background: c }}
+                    />
+                  ))}
+                </div>
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Direction
+                </p>
+                <div className="flex gap-2">
+                  {(["rtl", "ltr"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setTheme((t) => ({ ...t, dir: d }))}
+                      className={[
+                        "flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold uppercase transition",
+                        theme.dir === d
+                          ? "border-brand-400 bg-brand-50 text-brand-700"
+                          : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Submit button
+                </p>
+                <input
+                  value={theme.submitLabel ?? ""}
+                  onChange={(e) => setTheme((t) => ({ ...t, submitLabel: e.target.value }))}
+                  placeholder={DEFAULT_THEME.submitLabel}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Thank-you title
+                </p>
+                <input
+                  value={theme.thankYouTitle ?? ""}
+                  onChange={(e) => setTheme((t) => ({ ...t, thankYouTitle: e.target.value }))}
+                  placeholder={DEFAULT_THEME.thankYouTitle}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Thank-you message
+                </p>
+                <textarea
+                  value={theme.thankYouMessage ?? ""}
+                  onChange={(e) => setTheme((t) => ({ ...t, thankYouMessage: e.target.value }))}
+                  placeholder={DEFAULT_THEME.thankYouMessage}
+                  rows={2}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+              </div>
             </div>
           </div>
 
-          <div className={tab === "design" ? "block" : "hidden lg:block"}>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Accent color
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ACCENTS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setTheme((t) => ({ ...t, accent: c }))}
-                    aria-label={`Accent ${c}`}
-                    className={[
-                      "h-7 w-7 rounded-full ring-2 ring-offset-2 transition",
-                      theme.accent === c ? "ring-slate-400" : "ring-transparent",
-                    ].join(" ")}
-                    style={{ background: c }}
-                  />
-                ))}
-              </div>
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Direction
-              </p>
-              <div className="flex gap-2">
-                {(["rtl", "ltr"] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setTheme((t) => ({ ...t, dir: d }))}
-                    className={[
-                      "flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold uppercase transition",
-                      theme.dir === d
-                        ? "border-brand-400 bg-brand-50 text-brand-700"
-                        : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Submit button
-              </p>
-              <input
-                value={theme.submitLabel ?? ""}
-                onChange={(e) => setTheme((t) => ({ ...t, submitLabel: e.target.value }))}
-                placeholder={DEFAULT_THEME.submitLabel}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
-
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Thank-you title
-              </p>
-              <input
-                value={theme.thankYouTitle ?? ""}
-                onChange={(e) => setTheme((t) => ({ ...t, thankYouTitle: e.target.value }))}
-                placeholder={DEFAULT_THEME.thankYouTitle}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
-
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Thank-you message
-              </p>
-              <textarea
-                value={theme.thankYouMessage ?? ""}
-                onChange={(e) => setTheme((t) => ({ ...t, thankYouMessage: e.target.value }))}
-                placeholder={DEFAULT_THEME.thankYouMessage}
-                rows={2}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className={tab === "preview" ? "block" : "hidden lg:block"}>
+          {/* Preview — always in view on desktop */}
+          <div
+            className={
+              tab === "preview"
+                ? "block"
+                : "hidden lg:block lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+            }
+          >
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Live preview
