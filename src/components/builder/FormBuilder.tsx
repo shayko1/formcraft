@@ -3,7 +3,6 @@ import {
   DndContext,
   DragOverlay,
   MouseSensor,
-  TouchSensor,
   KeyboardSensor,
   closestCenter,
   useSensor,
@@ -99,16 +98,26 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [rightPane, setRightPane] = useState<RightPane>("edit");
   const [fullPreview, setFullPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches,
+  );
 
   const firstRender = useRef(true);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
 
+  // Desktop-only mouse drag. Mobile uses ↑↓ buttons — TouchSensor fights scroll/taps.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    // Delay so vertical scroll doesn't start a reorder on phones.
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const selected = fields.find((f) => f.id === selectedId) ?? null;
   const publicUrl = `${props.origin}/f/${props.slug}`;
@@ -162,6 +171,16 @@ export default function FormBuilder(props: FormBuilderProps) {
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
       setTab("settings");
     }
+  };
+
+  const moveField = (id: string, dir: -1 | 1) => {
+    setFields((prev) => {
+      const oldIdx = prev.findIndex((f) => f.id === id);
+      if (oldIdx === -1) return prev;
+      const newIdx = oldIdx + dir;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      return arrayMove(prev, oldIdx, newIdx);
+    });
   };
 
   const addField = (type: FieldType) => {
@@ -278,11 +297,11 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragEnd={onDragEnd}
     >
       {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 overflow-x-hidden border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href="/dashboard"
-            className="rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            className="shrink-0 rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
           >
             <IconRenderer name="ArrowLeft" />
           </a>
@@ -291,17 +310,17 @@ export default function FormBuilder(props: FormBuilderProps) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled form"
             aria-label="Form title"
-            className="min-w-0 flex-1 rounded-lg px-2 py-1 text-lg font-bold text-slate-900 outline-none hover:bg-slate-50 focus:bg-slate-50"
+            className="min-w-0 flex-1 rounded-lg px-2 py-1 text-base font-bold text-slate-900 outline-none hover:bg-slate-50 focus:bg-slate-50 sm:text-lg"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400" aria-live="polite">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <span className="hidden text-xs text-slate-400 sm:inline" aria-live="polite">
             {saveLabel}
           </span>
           <button
             type="button"
             onClick={() => void persist()}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-3"
           >
             Save
           </button>
@@ -386,15 +405,15 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div className="grid gap-4 p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
+      <div className="grid min-w-0 gap-4 overflow-x-hidden p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
         {/* Desktop palette — hidden on mobile (mobile uses strip above canvas) */}
-        <aside className="hidden lg:block">
+        <aside className="hidden min-w-0 lg:block">
           <Palette onAdd={addField} />
         </aside>
 
         {/* Canvas (+ mobile field strip) */}
-        <main className={tab === "build" ? "block" : "hidden lg:block"}>
-          <div className="mb-3 lg:hidden">
+        <main className={["min-w-0", tab === "build" ? "block" : "hidden lg:block"].join(" ")}>
+          <div className="mb-3 min-w-0 lg:hidden">
             <Palette onAdd={addField} layout="strip" />
           </div>
           <div className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -412,14 +431,21 @@ export default function FormBuilder(props: FormBuilderProps) {
           <Canvas
             fields={fields}
             selectedId={selectedId}
+            enableDrag={!isNarrow}
             onSelect={selectField}
             onDelete={deleteField}
             onDuplicate={duplicateField}
+            onMove={moveField}
           />
         </main>
 
         {/* Right column: Edit | Live tabs (desktop); mobile uses main tabs */}
-        <aside className="space-y-3">
+        <aside
+          className={[
+            "min-w-0 space-y-3",
+            tab === "build" ? "hidden lg:block" : "block",
+          ].join(" ")}
+        >
           <div className="hidden gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 lg:flex">
             {(
               [
@@ -447,6 +473,7 @@ export default function FormBuilder(props: FormBuilderProps) {
           <div
             className={[
               "space-y-4",
+              tab === "settings" || tab === "design" ? "block" : "hidden",
               rightPane === "edit" ? "lg:block" : "lg:hidden",
             ].join(" ")}
           >
@@ -654,6 +681,7 @@ export default function FormBuilder(props: FormBuilderProps) {
           {/* Live pane (desktop) + mobile Preview tab */}
           <div
             className={[
+              "min-w-0 overflow-x-hidden",
               tab === "preview" ? "block" : "hidden",
               rightPane === "live" ? "lg:block" : "lg:hidden",
             ].join(" ")}
@@ -766,15 +794,19 @@ export default function FormBuilder(props: FormBuilderProps) {
 function Canvas({
   fields,
   selectedId,
+  enableDrag,
   onSelect,
   onDelete,
   onDuplicate,
+  onMove,
 }: {
   fields: FieldConfig[];
   selectedId: string | null;
+  enableDrag: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: "canvas" });
 
@@ -782,7 +814,7 @@ function Canvas({
     <div
       ref={setNodeRef}
       className={[
-        "min-h-[400px] rounded-2xl border-2 border-dashed p-4 transition",
+        "min-h-[280px] min-w-0 rounded-2xl border-2 border-dashed p-3 transition sm:min-h-[400px] sm:p-4",
         isOver ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-white",
       ].join(" ")}
     >
@@ -802,14 +834,18 @@ function Canvas({
       ) : (
         <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2.5">
-            {fields.map((f) => (
+            {fields.map((f, i) => (
               <FieldCard
                 key={f.id}
                 field={f}
                 selected={f.id === selectedId}
+                enableDrag={enableDrag}
+                index={i}
+                total={fields.length}
                 onSelect={() => onSelect(f.id)}
                 onDelete={() => onDelete(f.id)}
                 onDuplicate={() => onDuplicate(f.id)}
+                onMove={(dir) => onMove(f.id, dir)}
               />
             ))}
           </div>

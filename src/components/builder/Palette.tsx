@@ -102,7 +102,7 @@ export default function Palette({ onAdd, layout = "stack" }: PaletteProps) {
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Tap to add a field
         </p>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]">
           {available.map((meta) => (
             <PaletteChip
               key={meta.type}

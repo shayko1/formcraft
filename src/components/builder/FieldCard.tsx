@@ -3,36 +3,48 @@ import { CSS } from "@dnd-kit/utilities";
 import * as LucideIcons from "lucide-react";
 import { FIELD_TYPES, type FieldConfig } from "../../lib/form-schema";
 
-function IconRenderer({ name }: { name: string }) {
+function IconRenderer({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as any)[name];
   if (!Icon) return null;
-  return <Icon className="h-4 w-4" />;
+  return <Icon className={className || "h-4 w-4"} />;
 }
 
 interface FieldCardProps {
   field: FieldConfig;
   selected: boolean;
+  /** Desktop drag-to-reorder. Off on mobile — use move buttons instead. */
+  enableDrag?: boolean;
+  index: number;
+  total: number;
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onMove: (dir: -1 | 1) => void;
 }
 
 export default function FieldCard({
   field,
   selected,
+  enableDrag = true,
+  index,
+  total,
   onSelect,
   onDelete,
   onDuplicate,
+  onMove,
 }: FieldCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
+    disabled: !enableDrag,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
+  const style = enableDrag
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }
+    : undefined;
 
   const meta = FIELD_TYPES[field.type] ?? FIELD_TYPES.text;
 
@@ -50,20 +62,49 @@ export default function FieldCard({
         }
       }}
       className={[
-        "group flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm transition",
+        "group flex max-w-full items-center gap-2 rounded-xl border bg-white p-3 shadow-sm transition sm:gap-3",
         selected ? "border-brand-400 ring-2 ring-brand-200" : "border-slate-200 hover:border-slate-300",
       ].join(" ")}
     >
-      <button
-        type="button"
-        {...listeners}
-        {...attributes}
-        aria-label="Drag to reorder"
-        onClick={(e) => e.stopPropagation()}
-        className="flex h-10 w-8 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 hover:text-slate-500 active:cursor-grabbing lg:h-8 lg:w-6 lg:text-slate-300"
-      >
-        <IconRenderer name="GripVertical" />
-      </button>
+      {enableDrag ? (
+        <button
+          type="button"
+          {...listeners}
+          {...attributes}
+          aria-label="Drag to reorder"
+          onClick={(e) => e.stopPropagation()}
+          className="flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+        >
+          <IconRenderer name="GripVertical" />
+        </button>
+      ) : (
+        <div className="flex shrink-0 flex-col gap-0.5">
+          <button
+            type="button"
+            disabled={index === 0}
+            aria-label="Move up"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMove(-1);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+          >
+            <IconRenderer name="ChevronUp" className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            disabled={index >= total - 1}
+            aria-label="Move down"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMove(1);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+          >
+            <IconRenderer name="ChevronDown" className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
         <IconRenderer name={meta.icon} />
