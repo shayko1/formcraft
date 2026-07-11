@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { getCurrentMemberId } from "../../../lib/session";
 import { getFormById } from "../../../lib/forms";
-import { deleteSubmissions } from "../../../lib/submissions";
+import { deleteSubmissions, listSubmissions } from "../../../lib/submissions";
 
 // POST /api/submissions/delete  { formId, ids } — bulk delete (owner only).
 export const POST: APIRoute = async ({ request }) => {
@@ -24,8 +24,14 @@ export const POST: APIRoute = async ({ request }) => {
   if (!form) return new Response("Not Found", { status: 404 });
   if (form.ownerId !== memberId) return new Response("Forbidden", { status: 403 });
 
+  // Only delete rows that actually belong to THIS form — never trust the caller's ids
+  // (otherwise an owner could delete another form's responses by passing foreign ids).
+  const own = new Set((await listSubmissions(formId)).map((s) => s.id));
+  const toDelete = ids.filter((id) => own.has(id));
+  if (toDelete.length === 0) return new Response(null, { status: 204 });
+
   try {
-    await deleteSubmissions(ids);
+    await deleteSubmissions(toDelete);
     return new Response(null, { status: 204 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Delete failed";
