@@ -65,9 +65,29 @@ npm run release   # wix release  → publishes to the wix-site-host URL
 > The real production URL is the prefixed host in `.wix/topology.json`
 > (`fpvjxz-form-craft-...`); the un-prefixed alias also serves.
 
+## Subscriptions (freemium → Pro)
+
+- **Product:** a Wix **Pricing Plans** recurring plan — "FormCraft Pro", €12/mo,
+  plan id `eb231ba3-8ceb-4981-bc85-61b2d1f50fbb` (`PRO_PLAN_ID` in `src/lib/plan.ts`).
+- **Detection:** `getPlanTier(memberId)` reads the member's active Pro orders via the
+  Pricing Plans REST API using an **elevated** `httpClient.fetchWithAuth`
+  (`GET /pricing-plans/v2/orders?planIds=<PRO>&orderStatuses=ACTIVE`). Works from any
+  context (owner dashboard *and* public visitor submit), degrades to `free` on error.
+- **Upgrade:** `POST /api/upgrade` creates a headless **paid-plans checkout redirect
+  session** (`@wix/redirects`, `paidPlansCheckout: { planId }`) in the **member's**
+  context (not elevated — so `maintainIdentity` carries their login into Wix checkout)
+  and returns `redirectSession.fullUrl`. `UpgradeButton.tsx` drives it from the pricing
+  page and the dashboard limit banner; 401 routes through login first. Post-checkout
+  returns to `/dashboard?upgraded=1`.
+- **Enforcement:** free = 1 published form + 100 responses/mo; Pro = unlimited. Checked
+  on publish (`PATCH /api/forms/[id]`) and submit (`/api/submit`).
+
+> **One owner step to take real payments:** connect a payment provider that supports
+> recurring charges in the Wix dashboard
+> (`support.wix.com/en/article/accepting-recurring-payments`). The full flow up to the
+> payment step is live without it.
+
 ## Known polish items
 
 - The public thank-you message is English text rendered under the form's `dir`; on an
   RTL form the `!`/`.` punctuation visually flips. Cosmetic only.
-- Freemium Pro tier is gated in code (`src/lib/plan.ts`) but resolves everyone to
-  `free` until a Wix Pricing Plan product is configured; wire the plan lookup there.

@@ -1,3 +1,4 @@
+import { auth, httpClient } from "@wix/essentials";
 import { countPublishedByOwner } from "./forms";
 import { countSubmissionsThisMonth } from "./submissions";
 
@@ -9,16 +10,38 @@ export const LIMITS = {
   pro: { maxPublishedForms: Infinity, maxSubmissionsPerMonth: Infinity },
 } as const;
 
+// The FormCraft Pro recurring plan (Wix Pricing Plans). €12/mo.
+export const PRO_PLAN_ID = "eb231ba3-8ceb-4981-bc85-61b2d1f50fbb";
+
+// Elevated authenticated fetch — lets this backend read ALL pricing-plan orders
+// (admin scope) regardless of the calling identity, so we can resolve the OWNER's
+// plan even from a public visitor's submit request. No @wix/pricing-plans SDK needed;
+// we call the REST API directly.
+const elevatedFetch = auth.elevate(httpClient.fetchWithAuth);
+
 /**
- * Resolve a member's plan tier.
- *
- * v1 detects Pro via a Wix Pricing Plans membership. Until a paid plan product is
- * configured in the Wix dashboard, this resolves to "free" and the free limits are
- * enforced. Wiring point: query the member's active plan orders here and return "pro"
- * when an active paid order exists. Any failure degrades safely to "free".
+ * Resolve a member's plan tier by checking their active Pro pricing-plan orders.
+ * Works from any request context (dashboard = owner session, submit = visitor).
+ * Any failure degrades safely to "free".
  */
-export async function getPlanTier(_ownerId: string): Promise<PlanTier> {
-  return "free";
+export async function getPlanTier(memberId: string): Promise<PlanTier> {
+  if (!memberId) return "free";
+  try {
+    const url =
+      `https://www.wixapis.com/pricing-plans/v2/orders` +
+      `?planIds=${PRO_PLAN_ID}&orderStatuses=ACTIVE&orderStatuses=PENDING&limit=100`;
+    const res = await elevatedFetch(url);
+    if (!res.ok) return "free";
+    const body = (await res.json()) as { orders?: Array<Record<string, unknown>> };
+    const orders = body.orders ?? [];
+    const isPro = orders.some((o) => {
+      const buyer = (o.buyer ?? {}) as { memberId?: string };
+      return buyer.memberId === memberId || (o as { memberId?: string }).memberId === memberId;
+    });
+    return isPro ? "pro" : "free";
+  } catch {
+    return "free";
+  }
 }
 
 export interface QuotaStatus {

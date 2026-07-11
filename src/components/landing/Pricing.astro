@@ -1,4 +1,5 @@
 ---
+import UpgradeButton from "../UpgradeButton";
 interface Props {
   compact?: boolean;
 }
@@ -57,7 +58,7 @@ const proFeatures = [
         <h3 class="text-2xl font-bold text-[var(--color-brand-dark)]">Pro</h3>
         <p class="mt-3 text-base font-bold text-[var(--color-brand-muted)]">Unlimited forms and responses.</p>
         <div class="mt-6 flex items-baseline gap-2">
-          <span class="text-6xl font-extrabold text-[var(--color-brand-dark)]">$12</span>
+          <span class="text-6xl font-extrabold text-[var(--color-brand-dark)]">€12</span>
           <span class="text-lg font-bold text-[var(--color-brand-muted)]">/ month</span>
         </div>
         <ul class="mt-8 space-y-4">
@@ -67,9 +68,9 @@ const proFeatures = [
             </li>
           ))}
         </ul>
-        <a href="/dashboard" class="mt-10 block w-full clay-btn-primary py-4 text-center text-lg font-bold">
-          Upgrade to Pro
-        </a>
+        <div class="mt-10">
+          <UpgradeButton client:load label="Upgrade to Pro" className="block w-full clay-btn-primary py-4 text-center text-lg font-bold" />
+        </div>
       </div>
     </div>
   </div>

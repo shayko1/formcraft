@@ -2,9 +2,12 @@
 import Layout from "../../components/Layout.astro";
 import DashboardHeader from "../../components/DashboardHeader.astro";
 import FormsList, { type FormSummary } from "../../components/FormsList";
+import UpgradeButton from "../../components/UpgradeButton";
 import { getCurrentMemberId, loginRedirect } from "../../lib/session";
 import { listFormsByOwner } from "../../lib/forms";
 import { getQuotaStatus } from "../../lib/plan";
+
+const justUpgraded = Astro.url.searchParams.get("upgraded") === "1";
 
 const memberId = await getCurrentMemberId();
 if (!memberId) return Astro.redirect(loginRedirect(Astro.url.pathname));
@@ -47,6 +50,17 @@ const origin = Astro.url.origin;
       </a>
     </div>
 
+    {justUpgraded && quota?.tier !== "pro" && (
+      <div class="mb-8 clay-card bg-green-50 p-6 text-base font-bold text-green-900 border border-green-100">
+        🎉 Thanks! Your checkout is complete. If your Pro badge hasn't appeared yet, refresh in a moment — subscriptions can take a few seconds to activate.
+      </div>
+    )}
+    {quota?.tier === "pro" && justUpgraded && (
+      <div class="mb-8 clay-card bg-green-50 p-6 text-base font-bold text-green-900 border border-green-100">
+        🎉 You're on <strong>Pro</strong> now — unlimited forms and responses. Enjoy!
+      </div>
+    )}
+
     {error ? (
       <div class="clay-card bg-red-50 p-6 text-sm font-bold text-red-900 border border-red-100">
         <strong>Couldn't load your forms.</strong> {error}
@@ -56,7 +70,7 @@ const origin = Astro.url.origin;
         {quota && quota.tier === "free" && !quota.canPublishMore && (
           <div class="mb-8 flex flex-wrap items-center justify-between gap-4 clay-card bg-[var(--color-brand-yellow)]/20 p-6 border border-[var(--color-brand-yellow)]/50">
             <p class="text-base font-bold text-[var(--color-brand-dark)]">You've reached your free plan limit. Upgrade to publish more forms.</p>
-            <a href="/pricing" class="clay-btn-primary px-6 py-3 text-sm font-bold">Upgrade</a>
+            <UpgradeButton client:load label="Upgrade to Pro" className="clay-btn-primary px-6 py-3 text-sm font-bold" />
           </div>
         )}
         <FormsList client:load forms={forms} origin={origin} />
