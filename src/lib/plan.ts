@@ -15,30 +15,37 @@ export const LIMITS = {
 // The FormCraft Pro recurring plan (Wix Pricing Plans). €12/mo.
 export const PRO_PLAN_ID = "eb231ba3-8ceb-4981-bc85-61b2d1f50fbb";
 
-// Elevated authenticated fetch — lets this backend read ALL pricing-plan orders
-// (admin scope) regardless of the calling identity. No @wix/pricing-plans SDK needed.
-const elevatedFetch = auth.elevate(httpClient.fetchWithAuth);
+// An order grants Pro only when it's live — NOT a DRAFT (abandoned/unpaid checkout).
+const ACTIVE_ORDER_STATUSES = new Set(["ACTIVE", "PENDING"]);
+
+// Admin orders read via elevation — reads ALL Pro orders (the member/orders endpoint
+// returned 400 in this runtime). We then match the buyer to the member in code.
+async function fetchProOrders(): Promise<Array<Record<string, unknown>>> {
+  const elevatedFetch = auth.elevate(httpClient.fetchWithAuth);
+  // NOTE: the admin ListOrders endpoint caps `limit` at 50 — passing 100 returns 400.
+  const res = await elevatedFetch(
+    `https://www.wixapis.com/pricing-plans/v2/orders?planIds=${PRO_PLAN_ID}&limit=50`,
+  );
+  if (!res.ok) return [];
+  const body = (await res.json()) as { orders?: Array<Record<string, unknown>> };
+  return body.orders ?? [];
+}
+
+function orderGrantsPro(o: Record<string, unknown>, memberId: string): boolean {
+  const buyer = (o.buyer ?? {}) as { memberId?: string };
+  const buyerMemberId = buyer.memberId ?? (o as { memberId?: string }).memberId;
+  return buyerMemberId === memberId && ACTIVE_ORDER_STATUSES.has(String(o.status));
+}
 
 /**
  * Resolve a member's plan tier by checking their active Pro pricing-plan orders.
- * Works from any request context (dashboard = owner session, submit = visitor).
  * Any failure degrades safely to "free".
  */
 export async function getPlanTier(memberId: string): Promise<PlanTier> {
   if (!memberId) return "free";
   try {
-    const url =
-      `https://www.wixapis.com/pricing-plans/v2/orders` +
-      `?planIds=${PRO_PLAN_ID}&orderStatuses=ACTIVE&orderStatuses=PENDING&limit=100`;
-    const res = await elevatedFetch(url);
-    if (!res.ok) return "free";
-    const body = (await res.json()) as { orders?: Array<Record<string, unknown>> };
-    const orders = body.orders ?? [];
-    const isPro = orders.some((o) => {
-      const buyer = (o.buyer ?? {}) as { memberId?: string };
-      return buyer.memberId === memberId || (o as { memberId?: string }).memberId === memberId;
-    });
-    return isPro ? "pro" : "free";
+    const orders = await fetchProOrders();
+    return orders.some((o) => orderGrantsPro(o, memberId)) ? "pro" : "free";
   } catch {
     return "free";
   }
