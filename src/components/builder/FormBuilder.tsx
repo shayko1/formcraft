@@ -498,6 +498,62 @@ export default function FormBuilder(props: FormBuilderProps) {
                 </p>
                 <InternalFieldsEditor fields={internalFields} onChange={setInternalFields} />
               </div>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Submission rules
+                </p>
+                <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">
+                      Allow duplicate responses
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      Same phone number can submit more than once
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!theme.allowDuplicateResponses}
+                    onChange={(e) =>
+                      setTheme((t) => ({ ...t, allowDuplicateResponses: e.target.checked }))
+                    }
+                    className="h-4 w-4 shrink-0 accent-brand-600"
+                  />
+                </label>
+                <label className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">
+                      Allow adding another response
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      Public form can add multiple filled blocks before submit
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!theme.allowMultipleEntries}
+                    onChange={(e) =>
+                      setTheme((t) => ({ ...t, allowMultipleEntries: e.target.checked }))
+                    }
+                    className="h-4 w-4 shrink-0 accent-brand-600"
+                  />
+                </label>
+                {theme.allowMultipleEntries && (
+                  <>
+                    <p className="mb-2 mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Add-button label
+                    </p>
+                    <input
+                      value={theme.addEntryLabel ?? ""}
+                      onChange={(e) =>
+                        setTheme((t) => ({ ...t, addEntryLabel: e.target.value }))
+                      }
+                      placeholder={DEFAULT_THEME.addEntryLabel}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
             <div className={tab === "design" ? "block" : "hidden lg:block"}>
@@ -571,54 +627,6 @@ export default function FormBuilder(props: FormBuilderProps) {
                   rows={2}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
-
-                <label className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
-                  <span className="text-sm font-medium text-slate-700">
-                    Allow adding another response
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={!!theme.allowMultipleEntries}
-                    onChange={(e) =>
-                      setTheme((t) => ({ ...t, allowMultipleEntries: e.target.checked }))
-                    }
-                    className="h-4 w-4 accent-brand-600"
-                  />
-                </label>
-                {theme.allowMultipleEntries && (
-                  <>
-                    <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Add-button label
-                    </p>
-                    <input
-                      value={theme.addEntryLabel ?? ""}
-                      onChange={(e) =>
-                        setTheme((t) => ({ ...t, addEntryLabel: e.target.value }))
-                      }
-                      placeholder={DEFAULT_THEME.addEntryLabel}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                    />
-                  </>
-                )}
-
-                <label className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
-                  <span>
-                    <span className="block text-sm font-medium text-slate-700">
-                      Allow duplicate responses
-                    </span>
-                    <span className="mt-0.5 block text-xs text-slate-400">
-                      When off, the same phone number cannot submit twice
-                    </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={!!theme.allowDuplicateResponses}
-                    onChange={(e) =>
-                      setTheme((t) => ({ ...t, allowDuplicateResponses: e.target.checked }))
-                    }
-                    className="h-4 w-4 shrink-0 accent-brand-600"
-                  />
-                </label>
 
                 <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Page background

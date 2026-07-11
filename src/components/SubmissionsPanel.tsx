@@ -293,7 +293,11 @@ export default function SubmissionsPanel({
     </button>
   );
 
-  const columns = fields;
+  type TableCol = { id: string; label: string; dir?: FieldConfig["dir"]; internal?: boolean };
+  const columns: TableCol[] = [
+    ...fields.map((f) => ({ id: f.id, label: f.label, dir: f.dir })),
+    ...internalFields.map((f) => ({ id: f.id, label: f.label, internal: true as const })),
+  ];
   const exportColumnOptions = [
     ...fields.map((f) => ({ id: f.id, label: f.label })),
     ...internalFields.map((f) => ({ id: f.id, label: `${f.label} (internal)` })),
@@ -372,9 +376,18 @@ export default function SubmissionsPanel({
               {columns.map((c, i) => (
                 <th
                   key={c.id}
-                  className={["px-2 py-2 text-start sm:px-3", i > 1 ? "hidden md:table-cell" : ""].join(" ")}
+                  className={[
+                    "px-2 py-2 text-start sm:px-3",
+                    i > 1 ? "hidden md:table-cell" : "",
+                    c.internal ? "text-slate-400" : "",
+                  ].join(" ")}
                 >
                   {c.label}
+                  {c.internal && (
+                    <span className="ms-1 hidden font-medium normal-case tracking-normal sm:inline">
+                      (int.)
+                    </span>
+                  )}
                 </th>
               ))}
               <th className="px-2 py-2 text-start sm:px-3">Status</th>
@@ -417,13 +430,22 @@ export default function SubmissionsPanel({
                   {columns.map((c, i) => (
                     <td
                       key={c.id}
-                      className={["px-2 py-2 sm:px-3", i > 1 ? "hidden md:table-cell" : "", i === 0 ? "font-medium" : ""].join(" ")}
+                      className={[
+                        "px-2 py-2 sm:px-3",
+                        i > 1 ? "hidden md:table-cell" : "",
+                        i === 0 ? "font-medium" : "",
+                        c.internal ? "text-slate-600" : "",
+                      ].join(" ")}
                       dir={c.dir === "ltr" ? "ltr" : undefined}
                     >
-                      {cellValue(r.data[c.id])}
+                      {cellValue(r.data[c.id]) || (c.internal ? "—" : "")}
                       {i === 1 && (
                         <span className="block text-xs text-slate-400 md:hidden">
-                          {columns.slice(2).map((c2) => cellValue(r.data[c2.id])).filter(Boolean).join(" · ")}
+                          {columns
+                            .slice(2)
+                            .map((c2) => cellValue(r.data[c2.id]))
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       )}
                     </td>
