@@ -572,13 +572,18 @@ export default function FormBuilder(props: FormBuilderProps) {
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
 
-                <label className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Submission rules
+                </p>
+
+                <label className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/40 px-3 py-2.5">
                   <span>
                     <span className="block text-sm font-medium text-slate-700">
-                      Allow duplicate responses
+                      Allow same phone number twice
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-400">
-                      Same phone number can submit more than once
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      By default a phone that already submitted is rejected. Turn this on to accept
+                      duplicates.
                     </span>
                   </span>
                   <input
@@ -591,9 +596,15 @@ export default function FormBuilder(props: FormBuilderProps) {
                   />
                 </label>
 
-                <label className="mt-2 flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
-                  <span className="text-sm font-medium text-slate-700">
-                    Allow adding another response
+                <label className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">
+                      Allow adding another response
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      Different: shows “+ add another” so one person can fill the form multiple
+                      times on the same page
+                    </span>
                   </span>
                   <input
                     type="checkbox"
@@ -601,7 +612,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                     onChange={(e) =>
                       setTheme((t) => ({ ...t, allowMultipleEntries: e.target.checked }))
                     }
-                    className="h-4 w-4 accent-brand-600"
+                    className="h-4 w-4 shrink-0 accent-brand-600"
                   />
                 </label>
                 {theme.allowMultipleEntries && (
