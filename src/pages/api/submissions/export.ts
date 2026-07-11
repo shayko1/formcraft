@@ -5,19 +5,19 @@ import { listSubmissions, markExported } from "../../../lib/submissions";
 import { getVisibleSubmissionsLimit } from "../../../lib/plan";
 import { buildCsv } from "../../../lib/csv";
 
-// POST /api/submissions/export  { formId, ids } — CSV of selected rows + mark exported.
+// POST /api/submissions/export  { formId, ids, fieldIds? } — CSV + mark exported.
 export const POST: APIRoute = async ({ request }) => {
   const memberId = await getCurrentMemberId();
   if (!memberId) return new Response("Unauthorized", { status: 401 });
 
-  let body: { formId?: string; ids?: string[] };
+  let body: { formId?: string; ids?: string[]; fieldIds?: string[] };
   try {
     body = await request.json();
   } catch {
     return new Response("Bad Request", { status: 400 });
   }
 
-  const { formId, ids } = body;
+  const { formId, ids, fieldIds } = body;
   if (!formId || !Array.isArray(ids) || ids.length === 0) {
     return new Response("Bad Request", { status: 400 });
   }
@@ -33,10 +33,24 @@ export const POST: APIRoute = async ({ request }) => {
   const idSet = new Set(ids);
   const selected = visible.filter((s) => idSet.has(s.id));
 
-  const headers = [
+  const allHeaders = [
     ...form.fields.map((f) => ({ id: f.id, label: f.label })),
+    ...form.internalFields.map((f) => ({ id: f.id, label: f.label })),
     { id: "_createdDate", label: "Submitted" },
   ];
+
+  let headers = allHeaders;
+  if (Array.isArray(fieldIds)) {
+    const want = new Set(fieldIds);
+    headers = allHeaders.filter((h) => want.has(h.id));
+    if (headers.length === 0) {
+      return new Response(JSON.stringify({ message: "No valid columns selected." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const csvRows = selected.map((s) => ({ ...s.data, _createdDate: s.createdDate }));
   const csv = buildCsv(headers, csvRows);
 

@@ -37,7 +37,13 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    await insertSubmission(formId, form.ownerId, data);
+    // Only persist public field answers — strip unknown / internal keys.
+    const allowed = new Set(form.fields.map((f) => f.id));
+    const clean: Record<string, unknown> = {};
+    for (const key of Object.keys(data)) {
+      if (allowed.has(key)) clean[key] = data[key];
+    }
+    await insertSubmission(formId, form.ownerId, clean);
     // Best-effort denormalized counter — never blocks the submission.
     updateForm(formId, { submissionCount: form.submissionCount + 1 }).catch(() => {});
     return new Response(JSON.stringify({ ok: true }), {

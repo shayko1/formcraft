@@ -28,12 +28,14 @@ import {
   type FieldConfig,
   type FieldType,
   type FormTheme,
+  type InternalFieldConfig,
   type PageBackgroundPreset,
   type CardStyle,
 } from "../../lib/form-schema";
 import Palette from "./Palette";
 import FieldCard from "./FieldCard";
 import SettingsPanel from "./SettingsPanel";
+import InternalFieldsEditor from "./InternalFieldsEditor";
 import FormRenderer from "../FormRenderer";
 
 function IconRenderer({ name, className }: { name: string; className?: string }) {
@@ -48,6 +50,7 @@ interface FormBuilderProps {
   initialTitle: string;
   initialDescription: string;
   initialFields: FieldConfig[];
+  initialInternalFields?: InternalFieldConfig[];
   initialTheme: FormTheme;
   initialPublished: boolean;
   origin: string;
@@ -77,6 +80,9 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [title, setTitle] = useState(props.initialTitle);
   const [description, setDescription] = useState(props.initialDescription);
   const [fields, setFields] = useState<FieldConfig[]>(props.initialFields);
+  const [internalFields, setInternalFields] = useState<InternalFieldConfig[]>(
+    props.initialInternalFields ?? [],
+  );
   const [theme, setTheme] = useState<FormTheme>({
     ...DEFAULT_THEME,
     ...(props.initialTheme ?? {}),
@@ -115,7 +121,7 @@ export default function FormBuilder(props: FormBuilderProps) {
     debounce.current = setTimeout(() => void persist(), 900);
     return () => clearTimeout(debounce.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, fields, theme]);
+  }, [title, description, fields, internalFields, theme]);
 
   // Keyboard: Delete/Backspace removes selected field when not typing in an input.
   useEffect(() => {
@@ -138,7 +144,7 @@ export default function FormBuilder(props: FormBuilderProps) {
       const res = await fetch(`/api/forms/${props.formId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, fields, theme, ...extra }),
+        body: JSON.stringify({ title, description, fields, internalFields, theme, ...extra }),
       });
       setSave(res.ok ? "saved" : "error");
     } catch {
@@ -434,6 +440,12 @@ export default function FormBuilder(props: FormBuilderProps) {
                   Field settings
                 </p>
                 <SettingsPanel field={selected} onChange={updateSelected} />
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Internal fields
+                </p>
+                <InternalFieldsEditor fields={internalFields} onChange={setInternalFields} />
               </div>
             </div>
 

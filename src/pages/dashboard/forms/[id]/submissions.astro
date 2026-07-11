@@ -18,6 +18,7 @@ if (form.ownerId !== memberId) return new Response("You don't have access to thi
 
 let rows: SubmissionRow[] = [];
 let hiddenCount = 0;
+let totalCollected = 0;
 let error: string | null = null;
 try {
   // Responses are always collected; the free tier only SHOWS the newest N.
@@ -25,6 +26,7 @@ try {
     listSubmissions(form.id),
     getVisibleSubmissionsLimit(memberId),
   ]);
+  totalCollected = subs.length;
   const visible = Number.isFinite(limit) ? subs.slice(0, limit) : subs;
   hiddenCount = subs.length - visible.length;
   rows = visible.map((s) => ({ id: s.id, data: s.data, exported: s.exported, createdDate: s.createdDate }));
@@ -70,7 +72,16 @@ const publicUrl = `${Astro.url.origin}/f/${form.slug}`;
     {error ? (
       <div class="rounded-2xl bg-red-50 p-6 text-sm text-red-700"><strong>Couldn't load responses.</strong> {error}</div>
     ) : (
-      <SubmissionsPanel client:load formId={form.id} fields={form.fields} submissions={rows} />
+      <SubmissionsPanel
+        client:load
+        formId={form.id}
+        fields={form.fields}
+        internalFields={form.internalFields}
+        submissions={rows}
+        viewCount={form.viewCount}
+        startCount={form.startCount}
+        totalResponses={totalCollected}
+      />
     )}
   </main>
 </Layout>

@@ -1,5 +1,10 @@
 import { adminItems, FORMS_COLLECTION } from "./wix-admin";
-import { DEFAULT_THEME, type FieldConfig, type FormTheme } from "./form-schema";
+import {
+  DEFAULT_THEME,
+  type FieldConfig,
+  type FormTheme,
+  type InternalFieldConfig,
+} from "./form-schema";
 
 // Short URL-safe random suffix. Inline (no nanoid) — nanoid's cjs entry does a
 // top-level `require('crypto')` that crashes the Cloudflare Worker runtime Wix uses.
@@ -18,9 +23,13 @@ export interface Form {
   slug: string;
   templateId: string;
   fields: FieldConfig[];
+  /** Admin-only response columns; missing on old forms → []. */
+  internalFields: InternalFieldConfig[];
   theme: FormTheme;
   published: boolean;
   submissionCount: number;
+  viewCount: number;
+  startCount: number;
   createdDate: string;
 }
 
@@ -75,9 +84,12 @@ function mapForm(raw: Record<string, unknown>): Form {
     slug: String(r.slug ?? ""),
     templateId: String(r.templateId ?? "custom"),
     fields: parseJson<FieldConfig[]>(r.fields, []),
+    internalFields: parseJson<InternalFieldConfig[]>(r.internalFields, []),
     theme: parseJson<FormTheme>(r.theme, DEFAULT_THEME),
     published: Boolean(r.published),
     submissionCount: Number(r.submissionCount ?? 0),
+    viewCount: Number(r.viewCount ?? 0),
+    startCount: Number(r.startCount ?? 0),
     createdDate:
       r._createdDate instanceof Date
         ? r._createdDate.toISOString()
@@ -93,9 +105,12 @@ export async function createForm(input: FormInput): Promise<Form> {
     slug: slugify(input.title),
     templateId: input.templateId,
     fields: JSON.stringify(input.fields),
+    internalFields: JSON.stringify([]),
     theme: JSON.stringify(input.theme ?? DEFAULT_THEME),
     published: false,
     submissionCount: 0,
+    viewCount: 0,
+    startCount: 0,
   };
   const res = await adminItems.insert(FORMS_COLLECTION, dataItem);
   // Merge the server record (has _id + timestamps) over the input so the id is
@@ -155,9 +170,12 @@ export type FormPatch = Partial<{
   title: string;
   description: string;
   fields: FieldConfig[];
+  internalFields: InternalFieldConfig[];
   theme: FormTheme;
   published: boolean;
   submissionCount: number;
+  viewCount: number;
+  startCount: number;
 }>;
 
 export async function updateForm(id: string, patch: FormPatch): Promise<void> {
@@ -174,9 +192,12 @@ export async function updateForm(id: string, patch: FormPatch): Promise<void> {
     slug: existing.slug,
     templateId: existing.templateId,
     fields: JSON.stringify(patch.fields ?? existing.fields),
+    internalFields: JSON.stringify(patch.internalFields ?? existing.internalFields),
     theme: JSON.stringify(patch.theme ?? existing.theme),
     published: patch.published ?? existing.published,
     submissionCount: patch.submissionCount ?? existing.submissionCount,
+    viewCount: patch.viewCount ?? existing.viewCount,
+    startCount: patch.startCount ?? existing.startCount,
   };
   await adminItems.update(FORMS_COLLECTION, full);
 }

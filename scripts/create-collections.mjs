@@ -45,9 +45,12 @@ await createCollection(bearer, {
     { key: "slug", displayName: "Slug", type: "TEXT" },
     { key: "templateId", displayName: "Template ID", type: "TEXT" },
     { key: "fields", displayName: "Fields (JSON)", type: "TEXT" },
+    { key: "internalFields", displayName: "Internal Fields (JSON)", type: "TEXT" },
     { key: "theme", displayName: "Theme (JSON)", type: "TEXT" },
     { key: "published", displayName: "Published", type: "BOOLEAN" },
     { key: "submissionCount", displayName: "Submission Count", type: "NUMBER" },
+    { key: "viewCount", displayName: "View Count", type: "NUMBER" },
+    { key: "startCount", displayName: "Start Count", type: "NUMBER" },
   ],
   permissions: {
     insert: "ADMIN",

@@ -33,6 +33,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   if (typeof body.title === "string") patch.title = body.title;
   if (typeof body.description === "string") patch.description = body.description;
   if (Array.isArray(body.fields)) patch.fields = body.fields;
+  if (Array.isArray(body.internalFields)) patch.internalFields = body.internalFields;
   if (body.theme) patch.theme = body.theme;
   if (typeof body.published === "boolean") patch.published = body.published;
 

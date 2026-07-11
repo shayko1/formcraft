@@ -109,6 +109,32 @@ export async function markExported(subs: Submission[]): Promise<void> {
   );
 }
 
+/** Merge admin-only keys into submission.data (full replace). Returns updated submission. */
+export async function updateInternalData(
+  sub: Submission,
+  patch: Record<string, unknown>,
+): Promise<Submission> {
+  const data = { ...sub.data, ...patch };
+  await adminItems.update(SUBMISSIONS_COLLECTION, {
+    _id: sub.id,
+    formId: sub.formId,
+    ownerId: sub.ownerId,
+    data: JSON.stringify(data),
+    exported: sub.exported,
+  });
+  return { ...sub, data };
+}
+
+export async function getSubmissionById(id: string): Promise<Submission | null> {
+  try {
+    const res = await adminItems.get(SUBMISSIONS_COLLECTION, id);
+    const mapped = mapSubmission(res as Record<string, unknown>);
+    return mapped.id ? mapped : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteSubmissions(ids: string[]): Promise<void> {
   await adminItems.bulkRemove(SUBMISSIONS_COLLECTION, ids);
 }

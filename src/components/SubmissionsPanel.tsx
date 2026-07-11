@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import {
   type FieldConfig,
+  type InternalFieldConfig,
   isNameField,
   isPhoneField,
 } from "../lib/form-schema";
+import SubmissionsInsights from "./SubmissionsInsights";
 
 export interface SubmissionRow {
   id: string;
@@ -15,7 +17,12 @@ export interface SubmissionRow {
 interface SubmissionsPanelProps {
   formId: string;
   fields: FieldConfig[];
+  internalFields?: InternalFieldConfig[];
   submissions: SubmissionRow[];
+  viewCount?: number;
+  startCount?: number;
+  /** All collected responses (may exceed visible rows on free plan). */
+  totalResponses?: number;
 }
 
 type Filter = "all" | "new" | "exported";
@@ -60,15 +67,43 @@ function findDuplicateIds(fields: FieldConfig[], rows: SubmissionRow[]): Set<str
   return dupes;
 }
 
-export default function SubmissionsPanel({ formId, fields, submissions }: SubmissionsPanelProps) {
+function allExportColumnIds(fields: FieldConfig[], internalFields: InternalFieldConfig[]): string[] {
+  return [...fields.map((f) => f.id), ...internalFields.map((f) => f.id), "_createdDate"];
+}
+
+export default function SubmissionsPanel({
+  formId,
+  fields,
+  internalFields = [],
+  submissions,
+  viewCount = 0,
+  startCount = 0,
+  totalResponses,
+}: SubmissionsPanelProps) {
   const [rows, setRows] = useState<SubmissionRow[]>(submissions);
+  const [collectedTotal, setCollectedTotal] = useState(totalResponses ?? submissions.length);
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [exportIdsPending, setExportIdsPending] = useState<string[] | null>(null);
+  const [exportColumns, setExportColumns] = useState<Set<string>>(
+    () => new Set(allExportColumnIds(fields, internalFields)),
+  );
+
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [draftInternal, setDraftInternal] = useState<Record<string, string>>({});
+  const [detailSaving, setDetailSaving] = useState(false);
+
   const duplicateIds = useMemo(() => findDuplicateIds(fields, rows), [fields, rows]);
+
+  const stats = {
+    total: collectedTotal,
+    fresh: rows.filter((r) => !r.exported).length,
+    exported: rows.filter((r) => r.exported).length,
+  };
 
   const filterBase =
     filter === "new" ? rows.filter((r) => !r.exported) :
@@ -77,13 +112,16 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
   const filtered = search
     ? filterBase.filter((r) => {
         const q = search.toLowerCase();
-        return fields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q));
+        return fields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q)) ||
+          internalFields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q));
       })
     : filterBase;
 
   const filteredIds = filtered.map((r) => r.id);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
   const selectedInView = filteredIds.filter((id) => selected.has(id));
+
+  const detailRow = detailId ? rows.find((r) => r.id === detailId) ?? null : null;
 
   const toggleAll = () =>
     setSelected((prev) => {
@@ -106,6 +144,21 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     setSelected(new Set(duplicateIds));
   };
 
+  const openDetail = (row: SubmissionRow) => {
+    setDetailId(row.id);
+    const draft: Record<string, string> = {};
+    for (const f of internalFields) {
+      draft[f.id] = cellValue(row.data[f.id]);
+    }
+    setDraftInternal(draft);
+    setError(null);
+  };
+
+  const closeDetail = () => {
+    setDetailId(null);
+    setDraftInternal({});
+  };
+
   const callApi = async (url: string, body: object) => {
     const res = await fetch(url, {
       method: "POST",
@@ -116,12 +169,36 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     return res;
   };
 
-  const exportIds = async (ids: string[]) => {
+  const openExportPicker = (ids: string[]) => {
     if (ids.length === 0) return;
+    setExportColumns(new Set(allExportColumnIds(fields, internalFields)));
+    setExportIdsPending(ids);
+    setError(null);
+  };
+
+  const toggleExportColumn = (id: string) => {
+    setExportColumns((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const confirmExport = async () => {
+    if (!exportIdsPending || exportIdsPending.length === 0) return;
+    if (exportColumns.size === 0) {
+      setError("Select at least one column to export.");
+      return;
+    }
+    const ids = exportIdsPending;
     setLoading(true);
     setError(null);
     try {
-      const res = await callApi("/api/submissions/export", { formId, ids });
+      const res = await callApi("/api/submissions/export", {
+        formId,
+        ids,
+        fieldIds: [...exportColumns],
+      });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement("a"), { href: url, download: `responses.csv` });
@@ -132,15 +209,13 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
       const idSet = new Set(ids);
       setRows((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, exported: true } : r)));
       setSelected(new Set());
+      setExportIdsPending(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleExport = () => exportIds(selectedInView);
-  const handleExportAll = () => exportIds(filteredIds);
 
   const handleDelete = async () => {
     if (selectedInView.length === 0) return;
@@ -149,7 +224,10 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     setError(null);
     try {
       await callApi("/api/submissions/delete", { formId, ids: selectedInView });
+      const removed = selectedInView.length;
+      if (detailId && selectedInView.includes(detailId)) closeDetail();
       setRows((prev) => prev.filter((r) => !selectedInView.includes(r.id)));
+      setCollectedTotal((n) => Math.max(0, n - removed));
       setSelected(new Set());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
@@ -158,10 +236,26 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     }
   };
 
-  const stats = {
-    total: rows.length,
-    fresh: rows.filter((r) => !r.exported).length,
-    exported: rows.filter((r) => r.exported).length,
+  const saveInternal = async () => {
+    if (!detailRow) return;
+    setDetailSaving(true);
+    setError(null);
+    try {
+      const res = await callApi("/api/submissions/update-internal", {
+        formId,
+        submissionId: detailRow.id,
+        data: draftInternal,
+      });
+      const json = (await res.json()) as { data?: Record<string, unknown> };
+      const nextData = json.data ?? { ...detailRow.data, ...draftInternal };
+      setRows((prev) =>
+        prev.map((r) => (r.id === detailRow.id ? { ...r, data: nextData } : r)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setDetailSaving(false);
+    }
   };
 
   const filterBtn = (f: Filter, label: string) => (
@@ -182,39 +276,29 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     </button>
   );
 
-  // Show up to 4 fields as columns on desktop; the rest collapse into the first on mobile.
   const columns = fields;
+  const exportColumnOptions = [
+    ...fields.map((f) => ({ id: f.id, label: f.label })),
+    ...internalFields.map((f) => ({ id: f.id, label: `${f.label} (internal)` })),
+    { id: "_createdDate", label: "Submitted" },
+  ];
 
   return (
     <div className="space-y-5">
-      {/* Stats */}
-      <div className="flex flex-wrap gap-2 text-sm">
-        <span className="rounded-full bg-slate-100 px-3 py-1 font-medium">Total: {stats.total}</span>
-        <span className="rounded-full bg-orange-100 px-3 py-1 font-medium text-orange-700">New: {stats.fresh}</span>
-        <span className="rounded-full bg-green-100 px-3 py-1 font-medium text-green-700">Exported: {stats.exported}</span>
-        {duplicateIds.size > 0 && (
-          <button
-            onClick={selectDuplicates}
-            className="flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 font-medium text-yellow-700 transition hover:bg-yellow-200"
-          >
-            Duplicates: {duplicateIds.size}{" "}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>{" "}
-            select
-          </button>
-        )}
+      <SubmissionsInsights
+        fields={fields}
+        submissions={rows}
+        viewCount={viewCount}
+        startCount={startCount}
+        totalResponses={stats.total}
+        newCount={stats.fresh}
+        exportedCount={stats.exported}
+        duplicateCount={duplicateIds.size}
+        onSelectDuplicates={selectDuplicates}
+      />
+
+      <div className="border-t border-slate-200 pt-5">
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Responses</h2>
       </div>
 
       <input
@@ -236,14 +320,14 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={handleExportAll}
+            onClick={() => openExportPicker(filteredIds)}
             disabled={loading || filteredIds.length === 0}
             className="clay-btn-primary px-3 py-2 text-sm font-semibold disabled:opacity-50"
           >
             {loading ? "…" : `Export all (${filteredIds.length})`}
           </button>
           <button
-            onClick={handleExport}
+            onClick={() => openExportPicker(selectedInView)}
             disabled={loading || selectedInView.length === 0}
             className="clay-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-50"
           >
@@ -292,10 +376,16 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
               return (
                 <tr
                   key={r.id}
-                  onClick={() => toggleOne(r.id)}
+                  onClick={() => openDetail(r)}
                   className={[
                     "cursor-pointer transition",
-                    selected.has(r.id) ? "bg-brand-primary/10" : isDupe ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-slate-50",
+                    detailId === r.id
+                      ? "bg-brand-primary/10"
+                      : selected.has(r.id)
+                        ? "bg-brand-primary/5"
+                        : isDupe
+                          ? "bg-yellow-50 hover:bg-yellow-100"
+                          : "hover:bg-slate-50",
                   ].join(" ")}
                 >
                   <td className="px-2 py-2 sm:px-3">
@@ -341,8 +431,167 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
       </div>
 
       <p className="text-xs text-slate-400">
-        {filtered.length} shown of {rows.length}
+        {filtered.length} shown of {rows.length} · click a row to view / edit internal fields
       </p>
+
+      {exportIdsPending && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          onClick={() => !loading && setExportIdsPending(null)}
+        >
+          <div
+            role="dialog"
+            aria-labelledby="export-title"
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="export-title" className="text-lg font-bold text-slate-900">
+              Export columns
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Choose which columns to include in the CSV. {exportIdsPending.length} response
+              {exportIdsPending.length === 1 ? "" : "s"} will be marked exported.
+            </p>
+            <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
+              {exportColumnOptions.map((col) => (
+                <label key={col.id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={exportColumns.has(col.id)}
+                    onChange={() => toggleExportColumn(col.id)}
+                    className="h-4 w-4 accent-brand-primary"
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setExportIdsPending(null)}
+                disabled={loading}
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmExport()}
+                disabled={loading || exportColumns.size === 0}
+                className="clay-btn-primary px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                {loading ? "…" : "Download CSV"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailRow && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-slate-900/40"
+          onClick={closeDetail}
+        >
+          <div
+            role="dialog"
+            aria-labelledby="detail-title"
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <h3 id="detail-title" className="text-base font-bold text-slate-900">
+                Response
+              </h3>
+              <button
+                type="button"
+                onClick={closeDetail}
+                className="rounded-lg px-2 py-1 text-sm font-medium text-slate-500 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
+              <section>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Submitted answers
+                </p>
+                <dl className="space-y-3">
+                  {fields.map((f) => (
+                    <div key={f.id}>
+                      <dt className="text-xs font-medium text-slate-500">{f.label}</dt>
+                      <dd className="mt-0.5 text-sm text-slate-900" dir={f.dir === "ltr" ? "ltr" : undefined}>
+                        {cellValue(detailRow.data[f.id]) || "—"}
+                      </dd>
+                    </div>
+                  ))}
+                  <div>
+                    <dt className="text-xs font-medium text-slate-500">Submitted</dt>
+                    <dd className="mt-0.5 text-sm text-slate-900">
+                      {new Date(detailRow.createdDate).toLocaleString()}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Internal fields
+                </p>
+                {internalFields.length === 0 ? (
+                  <p className="text-sm text-slate-400">
+                    No internal fields on this form. Add them in Edit form → Settings.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {internalFields.map((f) => (
+                      <div key={f.id}>
+                        <label className="mb-1 block text-xs font-medium text-slate-500">{f.label}</label>
+                        {f.type === "select" ? (
+                          <select
+                            value={draftInternal[f.id] ?? ""}
+                            onChange={(e) =>
+                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/30"
+                          >
+                            <option value="">—</option>
+                            {(f.options ?? []).map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <textarea
+                            value={draftInternal[f.id] ?? ""}
+                            onChange={(e) =>
+                              setDraftInternal((prev) => ({ ...prev, [f.id]: e.target.value }))
+                            }
+                            rows={3}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/30"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+            {internalFields.length > 0 && (
+              <div className="border-t border-slate-200 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => void saveInternal()}
+                  disabled={detailSaving}
+                  className="clay-btn-primary w-full px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  {detailSaving ? "Saving…" : "Save internal fields"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

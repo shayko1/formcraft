@@ -45,7 +45,7 @@ Pichman parking-gate form pattern into a general-purpose product.
 
 ## Data model
 
-- `Forms`: `ownerId, title, description, slug, templateId, fields(JSON), theme(JSON), published, submissionCount`
+- `Forms`: `ownerId, title, description, slug, templateId, fields(JSON), theme(JSON), published, submissionCount, viewCount, startCount`
 - `Submissions`: `formId, ownerId, data(JSON), exported`
 - Permissions: `Submissions.insert = ANYONE` (public submit); everything else ADMIN,
   reached server-side via elevation and owner-scoped in code.
@@ -54,6 +54,7 @@ Pichman parking-gate form pattern into a general-purpose product.
 
 - `scripts/create-collections.mjs` — provisions the two CMS collections (idempotent).
   Uses `npx wix token --site <id>` + REST.
+- `scripts/add-analytics-fields.mjs` — adds `viewCount` / `startCount` to an existing Forms collection.
 
 ## Develop / deploy
 

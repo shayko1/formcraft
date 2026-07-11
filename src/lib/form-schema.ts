@@ -29,6 +29,16 @@ export interface FieldConfig {
   max?: number;
 }
 
+/** Admin-only columns on responses — never shown on the public form. */
+export type InternalFieldType = "text" | "select";
+
+export interface InternalFieldConfig {
+  id: string;
+  type: InternalFieldType;
+  label: string;
+  options?: string[]; // select
+}
+
 export type PageBackgroundPreset =
   | "slate"
   | "sand"
