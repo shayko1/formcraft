@@ -314,7 +314,8 @@ export default function FormRenderer({
       return (
         <div
           key={f.id}
-          className="font-extrabold leading-tight text-slate-900"
+          dir={mergedTheme.dir}
+          className="text-start font-extrabold leading-tight text-slate-900"
           style={{
             color: f.style?.labelColor || "#0f172a",
             fontSize: f.style?.labelSize ? `${f.style.labelSize}px` : "28px",
@@ -342,8 +343,11 @@ export default function FormRenderer({
 
     if (f.type === "file") {
       return (
-        <div key={f.id}>
-          <label className="mb-1.5 block text-sm font-semibold text-slate-700" style={labelStyle}>
+        <div key={f.id} dir={mergedTheme.dir} className="text-start">
+          <label
+            className="mb-1.5 block text-start text-sm font-semibold text-slate-700"
+            style={labelStyle}
+          >
             {f.label}
           </label>
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
@@ -354,10 +358,15 @@ export default function FormRenderer({
     }
 
     return (
-      <div key={f.id} style={textStyle} className={opts?.compact ? "h-full" : undefined}>
+      <div
+        key={f.id}
+        dir={mergedTheme.dir}
+        style={textStyle}
+        className={["text-start", opts?.compact ? "h-full" : undefined].filter(Boolean).join(" ")}
+      >
         <label
           className={[
-            "mb-1.5 block font-semibold",
+            "mb-1.5 block text-start font-semibold",
             opts?.compact ? "text-xs" : "text-sm",
             darkCard ? "text-slate-100" : "text-slate-700",
           ].join(" ")}
@@ -506,7 +515,7 @@ export default function FormRenderer({
       className={["space-y-5", darkCard ? "text-slate-100" : ""].join(" ")}
     >
       {!canvas && (
-        <div>
+        <div className="text-start">
           <h1
             className={[
               "text-2xl font-extrabold",
@@ -524,7 +533,7 @@ export default function FormRenderer({
       )}
 
       {canvas && (title || description) && (
-        <div className="px-1">
+        <div className="px-1 text-start">
           <h1
             className={[
               "text-xl font-extrabold sm:text-2xl",

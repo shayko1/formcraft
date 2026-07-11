@@ -230,6 +230,7 @@ export default function CanvasEditor({
               "absolute start-0 top-0 origin-top-left shadow-xl shadow-slate-900/5 ring-1",
               darkCard ? "ring-white/10" : "ring-slate-200",
             ].join(" ")}
+            dir={theme.dir ?? "ltr"}
             style={{
               width: artboardW,
               minHeight: height,

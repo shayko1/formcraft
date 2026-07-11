@@ -295,7 +295,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
 
       {field.type !== "heading" && field.type !== "image" && (
       <div>
-        <label className={labelCls}>Text direction</label>
+        <label className={labelCls}>Input direction</label>
         <div className="flex gap-2">
           {(["auto", "rtl", "ltr"] as const).map((d) => (
             <button

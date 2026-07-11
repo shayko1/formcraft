@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as LucideIcons from "lucide-react";
-import { FIELD_TYPES, type FieldConfig } from "../../lib/form-schema";
+import { FIELD_TYPES, type FieldConfig, type FormTheme } from "../../lib/form-schema";
 
 function IconRenderer({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as any)[name];
@@ -36,6 +36,7 @@ interface FieldCardProps {
   enableDrag?: boolean;
   index: number;
   total: number;
+  themeDir?: FormTheme["dir"];
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -48,6 +49,7 @@ export default function FieldCard({
   enableDrag = true,
   index,
   total,
+  themeDir = "ltr",
   onSelect,
   onDelete,
   onDuplicate,
@@ -131,7 +133,7 @@ export default function FieldCard({
         <IconRenderer name={meta.icon} />
       </span>
 
-      <div className="min-w-0 flex-1">
+      <div dir={themeDir} className="min-w-0 flex-1 text-start">
         <div className="truncate text-sm font-semibold text-slate-800">
           {field.label || <span className="text-slate-400">Untitled</span>}
         </div>

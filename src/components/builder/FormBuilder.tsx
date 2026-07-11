@@ -599,15 +599,16 @@ export default function FormBuilder(props: FormBuilderProps) {
                 onEditSettings={openFieldSettings}
               />
             ) : (
-              <StackCanvas
-                fields={fields}
-                selectedId={selectedId}
-                enableDrag
-                onSelect={(id) => selectField(id)}
-                onDelete={deleteField}
-                onDuplicate={duplicateField}
-                onMove={moveField}
-              />
+            <StackCanvas
+              fields={fields}
+              selectedId={selectedId}
+              enableDrag
+              themeDir={theme.dir}
+              onSelect={(id) => selectField(id)}
+              onDelete={deleteField}
+              onDuplicate={duplicateField}
+              onMove={moveField}
+            />
             )}
           </div>
         </main>
@@ -1094,6 +1095,7 @@ function StackCanvas({
   fields,
   selectedId,
   enableDrag,
+  themeDir = "ltr",
   onSelect,
   onDelete,
   onDuplicate,
@@ -1102,6 +1104,7 @@ function StackCanvas({
   fields: FieldConfig[];
   selectedId: string | null;
   enableDrag: boolean;
+  themeDir?: FormTheme["dir"];
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
@@ -1112,6 +1115,7 @@ function StackCanvas({
   return (
     <div
       ref={setNodeRef}
+      dir={themeDir}
       className={[
         "min-h-[280px] min-w-0 rounded-2xl border-2 border-dashed p-3 transition sm:min-h-[400px] sm:p-4",
         isOver ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-white",
@@ -1139,6 +1143,7 @@ function StackCanvas({
                 enableDrag={enableDrag}
                 index={i}
                 total={fields.length}
+                themeDir={themeDir}
                 onSelect={() => onSelect(f.id)}
                 onDelete={() => onDelete(f.id)}
                 onDuplicate={() => onDuplicate(f.id)}
