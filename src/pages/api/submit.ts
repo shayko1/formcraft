@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { getFormById, updateForm } from "../../lib/forms";
 import { insertSubmission, existsWithValue } from "../../lib/submissions";
-import { validateFields, isPhoneField, isEmptyValue } from "../../lib/form-schema";
+import { validateFields, isEmptyValue, fieldsRequiringUnique } from "../../lib/form-schema";
 
 // POST /api/submit  { formId, data } — public endpoint, no auth.
 export const POST: APIRoute = async ({ request }) => {
@@ -29,12 +29,14 @@ export const POST: APIRoute = async ({ request }) => {
   // NOTE: no response-quota rejection here — responses are ALWAYS collected and stored.
   // Free-tier limits only cap how many are shown in the admin panel (see submissions page).
 
-  // Duplicate guard on the first phone-like field (opt-out via theme.allowDuplicateResponses).
-  if (!form.theme.allowDuplicateResponses) {
-    const phoneField = form.fields.find(isPhoneField);
-    if (phoneField && !isEmptyValue(data[phoneField.id])) {
-      const dup = await existsWithValue(formId, phoneField.id, String(data[phoneField.id]));
-      if (dup) return json(409, "A response with this phone number already exists.");
+  // Per-field unique values (any field type). Opt out globally via theme.allowDuplicateResponses.
+  for (const field of fieldsRequiringUnique(form.fields, form.theme.allowDuplicateResponses)) {
+    if (isEmptyValue(data[field.id])) continue;
+    const raw = data[field.id];
+    const value = Array.isArray(raw) ? raw.map(String).join(", ") : String(raw);
+    const dup = await existsWithValue(formId, field.id, value);
+    if (dup) {
+      return json(409, `A response with this ${field.label} already exists.`);
     }
   }
 

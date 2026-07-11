@@ -1,5 +1,5 @@
 import * as LucideIcons from "lucide-react";
-import { FIELD_TYPES, type FieldConfig } from "../../lib/form-schema";
+import { FIELD_TYPES, isPhoneField, type FieldConfig } from "../../lib/form-schema";
 
 function IconRenderer({ name }: { name: string }) {
   const Icon = (LucideIcons as any)[name];
@@ -218,6 +218,25 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           className="h-4 w-4 accent-brand-600"
         />
       </label>
+
+      {field.type !== "file" && field.type !== "checkbox" && (
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+          <span>
+            <span className="block text-sm font-medium text-slate-700">
+              Require unique value
+            </span>
+            <span className="mt-0.5 block text-xs text-slate-400">
+              Reject submit if this value was already used on this form
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={field.unique === true || (field.unique !== false && isPhoneField(field))}
+            onChange={(e) => onChange({ unique: e.target.checked })}
+            className="h-4 w-4 shrink-0 accent-brand-600"
+          />
+        </label>
+      )}
     </div>
   );
 }

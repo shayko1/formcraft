@@ -579,11 +579,11 @@ export default function FormBuilder(props: FormBuilderProps) {
                 <label className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/40 px-3 py-2.5">
                   <span>
                     <span className="block text-sm font-medium text-slate-700">
-                      Allow same phone number twice
+                      Allow duplicate field values
                     </span>
                     <span className="mt-0.5 block text-xs text-slate-500">
-                      By default a phone that already submitted is rejected. Turn this on to accept
-                      duplicates.
+                      Turns off all “Require unique value” checks for this form. Per-field unique
+                      settings are in Field settings (select a field).
                     </span>
                   </span>
                   <input

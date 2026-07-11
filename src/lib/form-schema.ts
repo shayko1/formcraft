@@ -27,6 +27,11 @@ export interface FieldConfig {
   /** Number / text length constraints */
   min?: number;
   max?: number;
+  /**
+   * When true, reject a new submission if this field’s value already exists
+   * on another response for the same form.
+   */
+  unique?: boolean;
 }
 
 /** Admin-only columns on responses — never shown on the public form. */
@@ -59,7 +64,7 @@ export interface FormTheme {
   allowMultipleEntries?: boolean;
   /** Label for the dashed “add another” button. */
   addEntryLabel?: string;
-  /** When true, skip the phone-number duplicate guard on submit. */
+  /** When true, skip all unique-field checks on submit (per-field unique flags ignored). */
   allowDuplicateResponses?: boolean;
   pageBackground?: PageBackgroundPreset;
   cardStyle?: CardStyle;
@@ -180,6 +185,7 @@ export const FIELD_TYPES: Record<FieldType, FieldTypeMeta> = {
       placeholder: "050-000-0000",
       required: true,
       dir: "ltr",
+      unique: true,
     }),
   },
   email: {
@@ -377,4 +383,23 @@ export function isPhoneField(f: FieldConfig): boolean {
 /** Heuristic: does this field hold a person's name? Used by duplicate detection. */
 export function isNameField(f: FieldConfig): boolean {
   return /name|שם/i.test(f.label);
+}
+
+/**
+ * Fields that must be unique across submissions.
+ * Explicit `unique: true/false` wins. Legacy: unmarked phone fields stay unique
+ * unless the form theme allows duplicates.
+ */
+export function fieldsRequiringUnique(
+  fields: FieldConfig[],
+  allowDuplicateResponses?: boolean,
+): FieldConfig[] {
+  if (allowDuplicateResponses) return [];
+  return fields.filter((f) => {
+    if (f.type === "file" || f.type === "checkbox") return false;
+    if (f.unique === true) return true;
+    if (f.unique === false) return false;
+    // Legacy default for older forms without the unique flag.
+    return isPhoneField(f);
+  });
 }
