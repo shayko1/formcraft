@@ -1,39 +1,39 @@
 ---
 // Server-rendered marketing nav. No JS — mobile uses a native <details> menu.
 ---
-<header class="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
-  <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-    <a href="/" class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-grad-brand text-white">◆</span>
-      <span>Form<span class="text-gradient">Craft</span></span>
+<header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+    <a href="/" class="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-[var(--color-brand-dark)]">
+      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-brand-primary)] text-white shadow-inner shadow-white/20">◆</span>
+      <span>Form<span class="text-[var(--color-brand-primary)]">Craft</span></span>
     </a>
 
     <div class="hidden items-center gap-8 md:flex">
-      <a href="/#features" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Features</a>
-      <a href="/#how" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">How it works</a>
-      <a href="/pricing" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Pricing</a>
-      <a href="/#faq" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">FAQ</a>
+      <a href="/#features" class="text-base font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]">Features</a>
+      <a href="/#how" class="text-base font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]">How it works</a>
+      <a href="/pricing" class="text-base font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]">Pricing</a>
+      <a href="/#faq" class="text-base font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]">FAQ</a>
     </div>
 
-    <div class="hidden items-center gap-3 md:flex">
-      <a href="/dashboard" class="text-sm font-semibold text-slate-700 transition hover:text-slate-900">Sign in</a>
-      <a href="/dashboard" class="rounded-xl bg-grad-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+    <div class="hidden items-center gap-4 md:flex">
+      <a href="/dashboard" class="text-base font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]">Sign in</a>
+      <a href="/dashboard" class="clay-btn-primary px-6 py-2.5 text-base font-bold">
         Start free
       </a>
     </div>
 
     <!-- Mobile menu -->
-    <details class="relative md:hidden">
-      <summary class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg text-slate-700 [&::-webkit-details-marker]:hidden">
-        <span class="text-xl">☰</span>
+    <details class="relative md:hidden group">
+      <summary class="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-xl bg-[var(--color-brand-light)] text-[var(--color-brand-dark)] [&::-webkit-details-marker]:hidden">
+        <span class="text-xl font-bold">☰</span>
       </summary>
-      <div class="absolute end-0 mt-2 w-52 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
-        <a href="/#features" class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Features</a>
-        <a href="/#how" class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">How it works</a>
-        <a href="/pricing" class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Pricing</a>
-        <a href="/#faq" class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</a>
-        <div class="my-1 h-px bg-slate-100"></div>
-        <a href="/dashboard" class="block rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Sign in / Start free</a>
+      <div class="absolute end-0 mt-3 w-52 clay-card p-2 z-50">
+        <a href="/#features" class="block rounded-xl px-4 py-3 text-base font-bold text-[var(--color-brand-dark)] hover:bg-[var(--color-brand-light)]">Features</a>
+        <a href="/#how" class="block rounded-xl px-4 py-3 text-base font-bold text-[var(--color-brand-dark)] hover:bg-[var(--color-brand-light)]">How it works</a>
+        <a href="/pricing" class="block rounded-xl px-4 py-3 text-base font-bold text-[var(--color-brand-dark)] hover:bg-[var(--color-brand-light)]">Pricing</a>
+        <a href="/#faq" class="block rounded-xl px-4 py-3 text-base font-bold text-[var(--color-brand-dark)] hover:bg-[var(--color-brand-light)]">FAQ</a>
+        <div class="my-2 h-px bg-slate-100"></div>
+        <a href="/dashboard" class="block rounded-xl px-4 py-3 text-base font-bold text-[var(--color-brand-primary)] hover:bg-[var(--color-brand-light)]">Sign in / Start free</a>
       </div>
     </details>
   </nav>

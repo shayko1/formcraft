@@ -101,7 +101,7 @@ export default function FormRenderer({
 
   if (status === "done") {
     return (
-      <div style={style} className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-100">
+      <div style={style} dir="auto" className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-100">
         <div
           className="mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white"
           style={{ background: "var(--accent)" }}

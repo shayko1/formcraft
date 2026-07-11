@@ -39,13 +39,13 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
 
   if (forms.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
-        <span className="text-4xl">📝</span>
-        <h3 className="mt-4 text-lg font-bold text-slate-900">No forms yet</h3>
-        <p className="mt-1 text-sm text-slate-500">Create your first form to start collecting responses.</p>
+      <div className="clay-card border-dashed border-2 border-[var(--color-brand-primary)]/30 bg-[var(--color-brand-primary)]/5 p-12 text-center">
+        <span className="text-5xl drop-shadow-md">📝</span>
+        <h3 className="mt-6 text-2xl font-bold text-[var(--color-brand-dark)]">No forms yet</h3>
+        <p className="mt-2 text-base font-bold text-[var(--color-brand-muted)]">Create your first form to start collecting responses.</p>
         <a
           href="/dashboard/forms/new"
-          className="mt-6 inline-block rounded-xl bg-grad-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
+          className="mt-8 inline-block clay-btn-primary px-8 py-3 text-base font-bold"
         >
           + New form
         </a>
@@ -54,35 +54,35 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {forms.map((f) => (
-        <div key={f.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+        <div key={f.id} className="flex flex-col clay-card p-6">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-base font-bold text-slate-900">{f.title || "Untitled form"}</h3>
+            <h3 className="truncate text-xl font-bold text-[var(--color-brand-dark)]">{f.title || "Untitled form"}</h3>
             {f.published ? (
-              <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Live</span>
+              <span className="shrink-0 rounded-full bg-[var(--color-brand-accent)] px-3 py-1 text-xs font-bold text-white shadow-inner">Live</span>
             ) : (
-              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Draft</span>
+              <span className="shrink-0 rounded-full bg-[var(--color-brand-light)] px-3 py-1 text-xs font-bold text-[var(--color-brand-muted)] shadow-inner">Draft</span>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500">{f.submissionCount} response{f.submissionCount === 1 ? "" : "s"}</p>
+          <p className="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">{f.submissionCount} response{f.submissionCount === 1 ? "" : "s"}</p>
 
-          <div className="mt-4 flex flex-1 flex-wrap items-end gap-2">
-            <a href={`/dashboard/forms/${f.id}/edit`} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700">
+          <div className="mt-6 flex flex-1 flex-wrap items-end gap-3">
+            <a href={`/dashboard/forms/${f.id}/edit`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
               Edit
             </a>
-            <a href={`/dashboard/forms/${f.id}/submissions`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+            <a href={`/dashboard/forms/${f.id}/submissions`} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
               Responses
             </a>
             {f.published && (
-              <button onClick={() => copy(f.slug)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+              <button onClick={() => copy(f.slug)} className="clay-btn-secondary px-4 py-2 text-xs font-bold">
                 Copy link
               </button>
             )}
             <button
               onClick={() => remove(f.id, f.title)}
               disabled={busy === f.id}
-              className="ms-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-50"
+              className="ms-auto rounded-xl bg-white px-3 py-2 text-xs font-bold text-red-500 shadow-sm border border-slate-100 transition hover:bg-red-50 disabled:opacity-50"
             >
               {busy === f.id ? "…" : "Delete"}
             </button>

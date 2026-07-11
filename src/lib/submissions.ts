@@ -19,17 +19,31 @@ function parseData(raw: unknown): Record<string, unknown> {
   }
 }
 
+// Unwrap only the response container ({ dataItem } / { item }). Unlike Forms, a
+// Submission has a real field named `data` (the answers blob), so we must NOT strip
+// a `.data` level once we've reached a record that has submission fields.
+function toRecord(raw: unknown): Record<string, unknown> {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const c = (r.dataItem ?? r.item ?? r) as Record<string, unknown>;
+  // If this container is a wrapper (no submission fields) but holds a nested record, descend.
+  if (c && c._id === undefined && c.id === undefined && c.formId === undefined && c.data && typeof c.data === "object") {
+    return c.data as Record<string, unknown>;
+  }
+  return c ?? {};
+}
+
 function mapSubmission(raw: Record<string, unknown>): Submission {
+  const r = toRecord(raw);
   return {
-    id: String(raw._id ?? ""),
-    formId: String(raw.formId ?? ""),
-    ownerId: String(raw.ownerId ?? ""),
-    data: parseData(raw.data),
-    exported: Boolean(raw.exported),
+    id: String(r._id ?? r.id ?? ""),
+    formId: String(r.formId ?? ""),
+    ownerId: String(r.ownerId ?? ""),
+    data: parseData(r.data),
+    exported: Boolean(r.exported),
     createdDate:
-      raw._createdDate instanceof Date
-        ? raw._createdDate.toISOString()
-        : String(raw._createdDate ?? ""),
+      r._createdDate instanceof Date
+        ? r._createdDate.toISOString()
+        : String(r._createdDate ?? ""),
   };
 }
 
@@ -79,10 +93,19 @@ export async function existsWithValue(
   return rows.some((r) => String(r.data[fieldId] ?? "").replace(/\s/g, "").toLowerCase() === norm);
 }
 
-export async function markExported(ids: string[]): Promise<void> {
-  await adminItems.bulkPatch(
-    SUBMISSIONS_COLLECTION,
-    ids.map((id) => ({ _id: id, exported: true })),
+// Mark rows exported. items.update is a full replace, so rebuild each complete record
+// (data already in hand from the export flow) with exported=true — no lossy partial write.
+export async function markExported(subs: Submission[]): Promise<void> {
+  await Promise.all(
+    subs.map((s) =>
+      adminItems.update(SUBMISSIONS_COLLECTION, {
+        _id: s.id,
+        formId: s.formId,
+        ownerId: s.ownerId,
+        data: JSON.stringify(s.data),
+        exported: true,
+      }),
+    ),
   );
 }
 

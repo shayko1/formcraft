@@ -152,14 +152,24 @@ export type FormPatch = Partial<{
 }>;
 
 export async function updateForm(id: string, patch: FormPatch): Promise<void> {
-  const update: Record<string, unknown> = { _id: id };
-  if (patch.title !== undefined) update.title = patch.title;
-  if (patch.description !== undefined) update.description = patch.description;
-  if (patch.fields !== undefined) update.fields = JSON.stringify(patch.fields);
-  if (patch.theme !== undefined) update.theme = JSON.stringify(patch.theme);
-  if (patch.published !== undefined) update.published = patch.published;
-  if (patch.submissionCount !== undefined) update.submissionCount = patch.submissionCount;
-  await adminItems.update(FORMS_COLLECTION, update);
+  // items.update is a full-document REPLACE — sending only changed fields would wipe
+  // the rest (published, slug, ownerId, …). So read-modify-write: load the current
+  // record, apply the patch, and write the complete object back.
+  const existing = await getFormById(id);
+  if (!existing) throw new Error("Form not found");
+  const full = {
+    _id: id,
+    ownerId: existing.ownerId,
+    title: patch.title ?? existing.title,
+    description: patch.description ?? existing.description,
+    slug: existing.slug,
+    templateId: existing.templateId,
+    fields: JSON.stringify(patch.fields ?? existing.fields),
+    theme: JSON.stringify(patch.theme ?? existing.theme),
+    published: patch.published ?? existing.published,
+    submissionCount: patch.submissionCount ?? existing.submissionCount,
+  };
+  await adminItems.update(FORMS_COLLECTION, full);
 }
 
 export async function deleteForm(id: string): Promise<void> {

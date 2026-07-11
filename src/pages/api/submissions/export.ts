@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
   const csvRows = selected.map((s) => ({ ...s.data, _createdDate: s.createdDate }));
   const csv = buildCsv(headers, csvRows);
 
-  await markExported(ids);
+  await markExported(selected);
 
   const filename = `${form.slug || "responses"}.csv`;
   return new Response(csv, {

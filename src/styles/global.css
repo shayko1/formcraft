@@ -1,43 +1,93 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Heebo:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Outfit:wght@400;500;700;800&display=swap");
 @import "tailwindcss";
 
-/* Design tokens — the FormCraft brand system. */
+/* Design tokens — 3D Minimalist Clay System */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-heebo: "Heebo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
-
-  --color-violet-500: #8b5cf6;
-  --color-violet-600: #7c3aed;
+  --color-brand-primary: #a78bfa; /* Soft purple */
+  --color-brand-secondary: #fbcfe8; /* Soft pink */
+  --color-brand-accent: #6ee7b7; /* Soft mint */
+  --color-brand-blue: #bae6fd; /* Soft blue */
+  --color-brand-yellow: #fef08a; /* Soft yellow */
+  
+  --color-brand-dark: #334155; /* Slate 700 */
+  --color-brand-muted: #64748b; /* Slate 500 */
+  --color-brand-light: #f8fafc; /* Slate 50 */
+  --color-brand-surface: #ffffff;
 
   --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
-  --radius-3xl: 1.75rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
 }
 
 :root {
-  --grad-brand: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #db2777 100%);
-  --grad-brand-soft: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
+  --grad-brand: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%);
+  --grad-brand-soft: linear-gradient(135deg, #fff 0%, var(--color-brand-light) 100%);
 }
 
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-dark);
 }
 
 body {
   font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* 3D Clay shadows */
+.clay-card {
+  background-color: var(--color-brand-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05), inset 0 -4px 0 0 rgba(0,0,0,0.02);
+  border: 1px solid rgba(255,255,255,0.8);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.clay-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.08), inset 0 -4px 0 0 rgba(0,0,0,0.02);
+}
+
+.clay-btn-primary {
+  background-color: var(--color-brand-primary);
+  color: white;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 10px 20px -5px rgba(167, 139, 250, 0.4), inset 0 -4px 0 0 rgba(0,0,0,0.15), inset 0 2px 0 0 rgba(255,255,255,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.clay-btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 24px -5px rgba(167, 139, 250, 0.5), inset 0 -4px 0 0 rgba(0,0,0,0.15), inset 0 2px 0 0 rgba(255,255,255,0.2);
+}
+.clay-btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 10px -2px rgba(167, 139, 250, 0.4), inset 0 -2px 0 0 rgba(0,0,0,0.15), inset 0 2px 0 0 rgba(255,255,255,0.2);
+}
+
+.clay-btn-secondary {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-dark);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05), inset 0 -4px 0 0 rgba(0,0,0,0.04), inset 0 2px 0 0 rgba(255,255,255,1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.clay-btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px -5px rgba(0, 0, 0, 0.08), inset 0 -4px 0 0 rgba(0,0,0,0.04), inset 0 2px 0 0 rgba(255,255,255,1);
+}
+.clay-btn-secondary:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.05), inset 0 -2px 0 0 rgba(0,0,0,0.04), inset 0 2px 0 0 rgba(255,255,255,1);
 }
 
 /* Gradient text helper */
@@ -55,27 +105,27 @@ body {
   background: var(--grad-brand-soft);
 }
 
-/* Subtle dotted grid backdrop for hero */
+/* Soft dotted grid backdrop */
 .bg-dots {
-  background-image: radial-gradient(circle, rgba(99, 102, 241, 0.12) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(circle, rgba(167, 139, 250, 0.15) 2px, transparent 2px);
+  background-size: 32px 32px;
 }
 
 /* Marketing float animation for the hero mockup */
 @keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
 }
 .animate-floaty {
-  animation: floaty 6s ease-in-out infinite;
+  animation: floaty 8s ease-in-out infinite;
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-up {
-  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -86,6 +136,6 @@ body {
 
 /* Focus visibility for accessibility */
 :where(a, button, input, select, textarea):focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 3px solid var(--color-brand-primary);
   outline-offset: 2px;
 }

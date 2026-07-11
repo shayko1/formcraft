@@ -30,33 +30,33 @@ try {
 
 const origin = Astro.url.origin;
 ---
-<Layout title="My forms" noindex bodyClass="bg-slate-50 text-slate-900">
+<Layout title="My forms" noindex bodyClass="bg-[var(--color-brand-light)] text-[var(--color-brand-dark)]">
   <DashboardHeader active="forms" />
-  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <main class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">My forms</h1>
+        <h1 class="text-4xl font-extrabold tracking-tight text-[var(--color-brand-dark)]">My forms</h1>
         {quota && (
-          <p class="mt-0.5 text-sm text-slate-500">
+          <p class="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">
             {quota.tier === "pro" ? "Pro plan · unlimited" : `Free plan · ${quota.publishedForms}/${quota.maxPublishedForms} published · ${quota.submissionsThisMonth}/${quota.maxSubmissionsPerMonth} responses this month`}
           </p>
         )}
       </div>
-      <a href="/dashboard/forms/new" class="rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+      <a href="/dashboard/forms/new" class="clay-btn-primary px-6 py-3 text-sm font-bold">
         + New form
       </a>
     </div>
 
     {error ? (
-      <div class="rounded-2xl bg-red-50 p-6 text-sm text-red-700">
+      <div class="clay-card bg-red-50 p-6 text-sm font-bold text-red-900 border border-red-100">
         <strong>Couldn't load your forms.</strong> {error}
       </div>
     ) : (
       <>
         {quota && quota.tier === "free" && !quota.canPublishMore && (
-          <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4">
-            <p class="text-sm font-medium text-brand-800">You've reached your free plan limit. Upgrade to publish more forms.</p>
-            <a href="/pricing" class="rounded-lg bg-grad-brand px-3 py-1.5 text-sm font-semibold text-white">Upgrade</a>
+          <div class="mb-8 flex flex-wrap items-center justify-between gap-4 clay-card bg-[var(--color-brand-yellow)]/20 p-6 border border-[var(--color-brand-yellow)]/50">
+            <p class="text-base font-bold text-[var(--color-brand-dark)]">You've reached your free plan limit. Upgrade to publish more forms.</p>
+            <a href="/pricing" class="clay-btn-primary px-6 py-3 text-sm font-bold">Upgrade</a>
           </div>
         )}
         <FormsList client:load forms={forms} origin={origin} />

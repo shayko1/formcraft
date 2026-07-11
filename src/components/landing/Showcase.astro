@@ -1,52 +1,52 @@
 ---
 // Split showcase: builder on one side, the resulting live form on the other.
 ---
-<section class="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+<section class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
   <div class="grid items-center gap-12 lg:grid-cols-2">
-    <div>
-      <span class="text-sm font-bold uppercase tracking-wide text-brand-600">The builder</span>
-      <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+    <div class="animate-fade-up">
+      <span class="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-secondary)]/40 px-4 py-1.5 text-xs font-bold text-[var(--color-brand-primary)]">The builder</span>
+      <h2 class="mt-6 text-4xl font-extrabold tracking-tight text-[var(--color-brand-dark)] sm:text-5xl">
         What you build is what they see
       </h2>
-      <p class="mt-4 text-lg leading-relaxed text-slate-600">
+      <p class="mt-6 text-xl leading-relaxed text-[var(--color-brand-muted)] font-medium">
         A simple form that works on phones and desktops, in any language.
       </p>
-      <ul class="mt-6 space-y-3">
+      <ul class="mt-8 space-y-4">
         {[
           "Drag fields with mouse or keyboard",
           "Text, phone, email, date, and choice fields",
           "Live preview while you edit",
           "Pick an accent color per form",
         ].map((t) => (
-          <li class="flex items-center gap-3 text-slate-700">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm text-green-600">✓</span>
-            <span class="font-medium">{t}</span>
+          <li class="flex items-center gap-4 text-[var(--color-brand-dark)] font-bold text-lg">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-accent)] text-white shadow-inner">✓</span>
+            <span>{t}</span>
           </li>
         ))}
       </ul>
     </div>
 
     <!-- Rendered form preview -->
-    <div class="rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-8 shadow-xl">
-      <div class="mx-auto max-w-sm">
-        <h3 class="text-xl font-extrabold text-slate-900">Event Signup</h3>
-        <p class="mt-1 text-sm text-slate-500">Takes about 20 seconds.</p>
-        <div class="mt-6 space-y-4">
+    <div class="clay-card p-8 animate-floaty bg-gradient-to-br from-[var(--color-brand-blue)]/20 to-[var(--color-brand-primary)]/10">
+      <div class="mx-auto max-w-sm rounded-3xl bg-white p-6 shadow-xl border border-slate-50">
+        <h3 class="text-2xl font-extrabold text-[var(--color-brand-dark)]">Event Signup</h3>
+        <p class="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">Takes about 20 seconds.</p>
+        <div class="mt-8 space-y-5">
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">Full name</label>
-            <div class="h-10 rounded-xl border border-slate-200 bg-white"></div>
+            <label class="mb-2 block text-sm font-bold text-[var(--color-brand-dark)]">Full name</label>
+            <div class="h-12 rounded-xl bg-[var(--color-brand-light)] shadow-inner"></div>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">Email</label>
-            <div class="h-10 rounded-xl border border-slate-200 bg-white"></div>
+            <label class="mb-2 block text-sm font-bold text-[var(--color-brand-dark)]">Email</label>
+            <div class="h-12 rounded-xl bg-[var(--color-brand-light)] shadow-inner"></div>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">Ticket type</label>
-            <div class="flex h-10 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-400">
+            <label class="mb-2 block text-sm font-bold text-[var(--color-brand-dark)]">Ticket type</label>
+            <div class="flex h-12 items-center justify-between rounded-xl bg-[var(--color-brand-light)] px-4 text-sm font-bold text-[var(--color-brand-muted)] shadow-inner">
               <span>General</span><span>▾</span>
             </div>
           </div>
-          <button class="h-11 w-full rounded-xl bg-grad-brand text-sm font-bold text-white shadow-lg">
+          <button class="mt-4 h-14 w-full clay-btn-primary text-lg font-bold">
             Reserve my spot
           </button>
         </div>

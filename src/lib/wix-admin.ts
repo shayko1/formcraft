@@ -21,7 +21,6 @@ export const adminItems = {
   insert: auth.elevate(items.insert),
   update: auth.elevate(items.update),
   remove: auth.elevate(items.remove),
-  bulkPatch: auth.elevate(items.bulkPatch),
   bulkRemove: auth.elevate(items.bulkRemove),
 };
 
@@ -30,8 +29,12 @@ const elevatedGetMember = auth.elevate(members.getMember);
 /** Resolve the login email of a Wix member (lowercased), or null. */
 export async function getMemberEmail(memberId: string): Promise<string | null> {
   try {
-    const res = await elevatedGetMember(memberId, { fieldsets: ["FULL"] });
-    return res.member?.loginEmail?.toLowerCase() ?? null;
+    const res = (await elevatedGetMember(memberId, { fieldsets: ["FULL"] })) as {
+      loginEmail?: string;
+      member?: { loginEmail?: string };
+    };
+    const email = res.loginEmail ?? res.member?.loginEmail;
+    return email?.toLowerCase() ?? null;
   } catch {
     return null;
   }
