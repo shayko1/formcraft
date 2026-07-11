@@ -139,7 +139,6 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
     }
   };
 
-  // Export selected rows, or — when nothing is selected — everything in the current view.
   const handleExport = () => exportIds(selectedInView);
   const handleExportAll = () => exportIds(filteredIds);
 
@@ -174,7 +173,9 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
       }}
       className={[
         "rounded-lg px-3 py-1.5 text-sm font-medium transition",
-        filter === f ? "bg-brand-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50",
+        filter === f
+          ? "bg-brand-primary text-white"
+          : "bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50",
       ].join(" ")}
     >
       {label}
@@ -196,7 +197,22 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
             onClick={selectDuplicates}
             className="flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 font-medium text-yellow-700 transition hover:bg-yellow-200"
           >
-            Duplicates: {duplicateIds.size} <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg> select
+            Duplicates: {duplicateIds.size}{" "}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>{" "}
+            select
           </button>
         )}
       </div>
@@ -209,7 +225,7 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
           setSelected(new Set());
         }}
         placeholder="Search responses…"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-300"
+        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/30"
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -222,14 +238,14 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
           <button
             onClick={handleExportAll}
             disabled={loading || filteredIds.length === 0}
-            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+            className="clay-btn-primary px-3 py-2 text-sm font-semibold disabled:opacity-50"
           >
             {loading ? "…" : `Export all (${filteredIds.length})`}
           </button>
           <button
             onClick={handleExport}
             disabled={loading || selectedInView.length === 0}
-            className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-700 ring-1 ring-brand-300 transition hover:bg-brand-50 disabled:opacity-50"
+            className="clay-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-50"
           >
             {loading ? "…" : `Export selected (${selectedInView.length})`}
           </button>
@@ -250,7 +266,7 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
           <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
             <tr>
               <th className="px-2 py-2 text-start sm:px-3">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 accent-brand-600" />
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 accent-brand-primary" />
               </th>
               {columns.map((c, i) => (
                 <th
@@ -279,7 +295,7 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
                   onClick={() => toggleOne(r.id)}
                   className={[
                     "cursor-pointer transition",
-                    selected.has(r.id) ? "bg-brand-50" : isDupe ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-slate-50",
+                    selected.has(r.id) ? "bg-brand-primary/10" : isDupe ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-slate-50",
                   ].join(" ")}
                 >
                   <td className="px-2 py-2 sm:px-3">
@@ -288,7 +304,7 @@ export default function SubmissionsPanel({ formId, fields, submissions }: Submis
                       checked={selected.has(r.id)}
                       onChange={() => toggleOne(r.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 accent-brand-600"
+                      className="h-4 w-4 accent-brand-primary"
                     />
                   </td>
                   {columns.map((c, i) => (

@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { getFormById, updateForm } from "../../lib/forms";
 import { insertSubmission, existsWithValue } from "../../lib/submissions";
-import { canAcceptSubmission } from "../../lib/plan";
 import { validateFields, isPhoneField, isEmptyValue } from "../../lib/form-schema";
 
 // POST /api/submit  { formId, data } — public endpoint, no auth.
@@ -27,9 +26,8 @@ export const POST: APIRoute = async ({ request }) => {
     return json(400, fieldErrors[0]?.message ?? "Please check the highlighted fields.");
   }
 
-  if (!(await canAcceptSubmission(form.ownerId))) {
-    return json(402, "This form has reached its monthly response limit.");
-  }
+  // NOTE: no response-quota rejection here — responses are ALWAYS collected and stored.
+  // Free-tier limits only cap how many are shown in the admin panel (see submissions page).
 
   // Duplicate guard on the first phone-like field, if present.
   const phoneField = form.fields.find(isPhoneField);

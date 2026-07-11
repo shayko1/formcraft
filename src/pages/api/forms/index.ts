@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { getCurrentMemberId } from "../../../lib/session";
 import { createForm } from "../../../lib/forms";
 import { getTemplate } from "../../../lib/templates";
+import { getQuotaStatus } from "../../../lib/plan";
 import type { FieldConfig } from "../../../lib/form-schema";
 
 const fid = () => Math.random().toString(36).slice(2, 10);
@@ -10,6 +11,18 @@ const fid = () => Math.random().toString(36).slice(2, 10);
 export const POST: APIRoute = async ({ request }) => {
   const ownerId = await getCurrentMemberId();
   if (!ownerId) return new Response("Unauthorized", { status: 401 });
+
+  // Enforce the plan's form cap server-side (never trust the client).
+  const quota = await getQuotaStatus(ownerId);
+  if (!quota.canCreateForm) {
+    return new Response(
+      JSON.stringify({
+        upgrade: true,
+        message: `Your ${quota.tier} plan is limited to ${quota.maxForms} form${quota.maxForms === 1 ? "" : "s"}. Upgrade to Pro for unlimited forms.`,
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
   let body: { templateId?: string };
   try {

@@ -41,13 +41,25 @@ const origin = Astro.url.origin;
         <h1 class="text-4xl font-extrabold tracking-tight text-[var(--color-brand-dark)]">My forms</h1>
         {quota && (
           <p class="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">
-            {quota.tier === "pro" ? "Pro plan · unlimited" : `Free plan · ${quota.publishedForms}/${quota.maxPublishedForms} published · ${quota.submissionsThisMonth}/${quota.maxSubmissionsPerMonth} responses this month`}
+            {quota.tier === "pro"
+              ? "Pro plan · unlimited forms & responses"
+              : `Free plan · ${quota.forms}/${quota.maxForms} form${quota.maxForms === 1 ? "" : "s"} · showing up to ${quota.visibleSubmissionsPerForm} responses per form`}
           </p>
         )}
       </div>
-      <a href="/dashboard/forms/new" class="clay-btn-primary px-6 py-3 text-sm font-bold">
-        + New form
-      </a>
+      {quota && !quota.canCreateForm ? (
+        <button
+          disabled
+          title="Free plan limit reached — upgrade to Pro for unlimited forms"
+          class="clay-btn-primary px-6 py-3 text-sm font-bold opacity-50 cursor-not-allowed"
+        >
+          + New form
+        </button>
+      ) : (
+        <a href="/dashboard/forms/new" class="clay-btn-primary px-6 py-3 text-sm font-bold">
+          + New form
+        </a>
+      )}
     </div>
 
     {justUpgraded && quota?.tier !== "pro" && (
@@ -67,9 +79,9 @@ const origin = Astro.url.origin;
       </div>
     ) : (
       <>
-        {quota && quota.tier === "free" && !quota.canPublishMore && (
+        {quota && quota.tier === "free" && !quota.canCreateForm && (
           <div class="mb-8 flex flex-wrap items-center justify-between gap-4 clay-card bg-[var(--color-brand-yellow)]/20 p-6 border border-[var(--color-brand-yellow)]/50">
-            <p class="text-base font-bold text-[var(--color-brand-dark)]">You've reached your free plan limit. Upgrade to publish more forms.</p>
+            <p class="text-base font-bold text-[var(--color-brand-dark)]">You've reached your free plan limit of {quota.maxForms} form{quota.maxForms === 1 ? "" : "s"}. Upgrade to Pro for unlimited forms and responses.</p>
             <UpgradeButton client:load label="Upgrade to Pro" className="clay-btn-primary px-6 py-3 text-sm font-bold" />
           </div>
         )}

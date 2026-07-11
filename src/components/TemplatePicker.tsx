@@ -28,7 +28,13 @@ export default function TemplatePicker({ templates }: { templates: TemplateCard[
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId }),
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setBusy(null);
+        // 403 = plan limit reached; show the upgrade message from the server.
+        setError(body.message ?? `Could not create form (${res.status})`);
+        return;
+      }
       const { id } = await res.json();
       window.location.href = `/dashboard/forms/${id}/edit`;
     } catch (e) {

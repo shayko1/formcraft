@@ -142,6 +142,15 @@ export async function countPublishedByOwner(ownerId: string): Promise<number> {
   return res.items.length;
 }
 
+/** Total forms owned (drafts + published) — drives the free-tier creation cap. */
+export async function countFormsByOwner(ownerId: string): Promise<number> {
+  const res = await adminItems.query(FORMS_COLLECTION)
+    .eq("ownerId", ownerId)
+    .limit(1000)
+    .find();
+  return res.items.length;
+}
+
 export type FormPatch = Partial<{
   title: string;
   description: string;

@@ -2,11 +2,16 @@
 import Layout from "../../../components/Layout.astro";
 import DashboardHeader from "../../../components/DashboardHeader.astro";
 import TemplatePicker, { type TemplateCard } from "../../../components/TemplatePicker";
+import UpgradeButton from "../../../components/UpgradeButton";
 import { getCurrentMemberId, loginRedirect } from "../../../lib/session";
+import { getQuotaStatus } from "../../../lib/plan";
 import { TEMPLATES } from "../../../lib/templates";
 
 const memberId = await getCurrentMemberId();
 if (!memberId) return Astro.redirect(loginRedirect(Astro.url.pathname));
+
+// Enforce the form cap before showing templates (the API enforces it too).
+const quota = await getQuotaStatus(memberId);
 
 const cards: TemplateCard[] = TEMPLATES.map((t) => ({
   id: t.id,
@@ -27,6 +32,24 @@ const cards: TemplateCard[] = TEMPLATES.map((t) => ({
       <h1 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">New form</h1>
       <p class="mt-1 text-sm text-slate-500">Pick a template. You can change everything later.</p>
     </div>
-    <TemplatePicker client:load templates={cards} />
+
+    {quota.canCreateForm ? (
+      <TemplatePicker client:load templates={cards} />
+    ) : (
+      <div class="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <span class="text-4xl">🔒</span>
+        <h2 class="mt-4 text-xl font-extrabold text-slate-900">You've reached your free plan limit</h2>
+        <p class="mt-2 text-sm text-slate-500">
+          The Free plan includes {quota.maxForms} form{quota.maxForms === 1 ? "" : "s"}. Upgrade to Pro for
+          unlimited forms and responses.
+        </p>
+        <div class="mt-6 flex items-center justify-center gap-3">
+          <UpgradeButton client:load label="Upgrade to Pro" />
+          <a href="/dashboard" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            Back to my forms
+          </a>
+        </div>
+      </div>
+    )}
   </main>
 </Layout>

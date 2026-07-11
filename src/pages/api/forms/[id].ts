@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { getCurrentMemberId } from "../../../lib/session";
 import { getFormById, updateForm, deleteForm, type FormPatch } from "../../../lib/forms";
-import { getQuotaStatus } from "../../../lib/plan";
 
 async function authorizeOwner(id: string) {
   const memberId = await getCurrentMemberId();
@@ -27,18 +26,8 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     return new Response("Bad Request", { status: 400 });
   }
 
-  // Enforce the published-form quota when transitioning to published.
-  if (body.published === true && !auth.form.published) {
-    const quota = await getQuotaStatus(auth.memberId);
-    if (!quota.canPublishMore) {
-      return new Response(
-        JSON.stringify({
-          message: `Your ${quota.tier} plan allows ${quota.maxPublishedForms} published form(s). Upgrade to publish more.`,
-        }),
-        { status: 402, headers: { "Content-Type": "application/json" } },
-      );
-    }
-  }
+  // No publish-quota check: the free-tier limit is enforced at form CREATION
+  // (total forms), so an owner may always publish the form(s) they're allowed to have.
 
   const patch: FormPatch = {};
   if (typeof body.title === "string") patch.title = body.title;

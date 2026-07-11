@@ -1,22 +1,22 @@
 import { auth, httpClient } from "@wix/essentials";
-import { countPublishedByOwner } from "./forms";
-import { countSubmissionsThisMonth } from "./submissions";
+import { countFormsByOwner } from "./forms";
 
-// Freemium limits. Pro is monthly and unlimited.
+// Freemium limits.
+//  - maxForms: hard cap on how many forms an owner can CREATE (enforced client + server).
+//  - visibleSubmissionsPerForm: how many responses the admin panel SHOWS. Responses are
+//    ALWAYS collected and stored regardless; the free tier only hides the overflow.
 export type PlanTier = "free" | "pro";
 
 export const LIMITS = {
-  free: { maxPublishedForms: 1, maxSubmissionsPerMonth: 100 },
-  pro: { maxPublishedForms: Infinity, maxSubmissionsPerMonth: Infinity },
+  free: { maxForms: 1, visibleSubmissionsPerForm: 100 },
+  pro: { maxForms: Infinity, visibleSubmissionsPerForm: Infinity },
 } as const;
 
 // The FormCraft Pro recurring plan (Wix Pricing Plans). €12/mo.
 export const PRO_PLAN_ID = "eb231ba3-8ceb-4981-bc85-61b2d1f50fbb";
 
 // Elevated authenticated fetch — lets this backend read ALL pricing-plan orders
-// (admin scope) regardless of the calling identity, so we can resolve the OWNER's
-// plan even from a public visitor's submit request. No @wix/pricing-plans SDK needed;
-// we call the REST API directly.
+// (admin scope) regardless of the calling identity. No @wix/pricing-plans SDK needed.
 const elevatedFetch = auth.elevate(httpClient.fetchWithAuth);
 
 /**
@@ -46,36 +46,27 @@ export async function getPlanTier(memberId: string): Promise<PlanTier> {
 
 export interface QuotaStatus {
   tier: PlanTier;
-  publishedForms: number;
-  maxPublishedForms: number;
-  submissionsThisMonth: number;
-  maxSubmissionsPerMonth: number;
-  canPublishMore: boolean;
-  canAcceptSubmission: boolean;
+  forms: number;
+  maxForms: number;
+  canCreateForm: boolean;
+  visibleSubmissionsPerForm: number;
 }
 
 export async function getQuotaStatus(ownerId: string): Promise<QuotaStatus> {
   const tier = await getPlanTier(ownerId);
   const limits = LIMITS[tier];
-  const [publishedForms, submissionsThisMonth] = await Promise.all([
-    countPublishedByOwner(ownerId),
-    countSubmissionsThisMonth(ownerId),
-  ]);
+  const forms = await countFormsByOwner(ownerId);
   return {
     tier,
-    publishedForms,
-    maxPublishedForms: limits.maxPublishedForms,
-    submissionsThisMonth,
-    maxSubmissionsPerMonth: limits.maxSubmissionsPerMonth,
-    canPublishMore: publishedForms < limits.maxPublishedForms,
-    canAcceptSubmission: submissionsThisMonth < limits.maxSubmissionsPerMonth,
+    forms,
+    maxForms: limits.maxForms,
+    canCreateForm: forms < limits.maxForms,
+    visibleSubmissionsPerForm: limits.visibleSubmissionsPerForm,
   };
 }
 
-/** Lightweight submission-quota check for the public submit endpoint. */
-export async function canAcceptSubmission(ownerId: string): Promise<boolean> {
+/** How many submissions the owner's tier is allowed to SEE (Infinity for Pro). */
+export async function getVisibleSubmissionsLimit(ownerId: string): Promise<number> {
   const tier = await getPlanTier(ownerId);
-  if (LIMITS[tier].maxSubmissionsPerMonth === Infinity) return true;
-  const count = await countSubmissionsThisMonth(ownerId);
-  return count < LIMITS[tier].maxSubmissionsPerMonth;
+  return LIMITS[tier].visibleSubmissionsPerForm;
 }
