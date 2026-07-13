@@ -122,6 +122,9 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [copied, setCopied] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  /** Visible host height (iframe-safe). 100dvh overshoots Wix and cuts the page. */
+  const [shellH, setShellH] = useState<number | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const savedSnapshot = useRef("");
   const isCanvas = theme.layoutMode === "canvas";
@@ -146,6 +149,24 @@ export default function FormBuilder(props: FormBuilderProps) {
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Size the editor to the *visible* frame (window.innerHeight), not CSS dvh.
+  useEffect(() => {
+    const measure = () => {
+      const vv = window.visualViewport;
+      const h = Math.round(vv?.height ?? window.innerHeight);
+      setShellH(h > 0 ? h : null);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("scroll", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("scroll", measure);
+    };
   }, []);
 
   useEffect(() => {
@@ -559,8 +580,20 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Fill the visible host frame (not 100dvh — that overshoots the Wix iframe). */}
-      <div className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-slate-100">
+      {/* Height = visible iframe (innerHeight), so content is not cut off. */}
+      <div
+        ref={shellRef}
+        className="flex flex-col overflow-hidden bg-slate-100"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: shellH != null ? `${shellH}px` : "100%",
+          maxHeight: shellH != null ? `${shellH}px` : "100%",
+          zIndex: 0,
+        }}
+      >
       {/* Top bar — stays visible */}
       <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
