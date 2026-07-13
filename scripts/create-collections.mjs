@@ -47,6 +47,7 @@ await createCollection(bearer, {
     { key: "fields", displayName: "Fields (JSON)", type: "TEXT" },
     { key: "internalFields", displayName: "Internal Fields (JSON)", type: "TEXT" },
     { key: "theme", displayName: "Theme (JSON)", type: "TEXT" },
+    { key: "live", displayName: "Live snapshot (JSON)", type: "TEXT" },
     { key: "published", displayName: "Published", type: "BOOLEAN" },
     { key: "submissionCount", displayName: "Submission Count", type: "NUMBER" },
     { key: "viewCount", displayName: "View Count", type: "NUMBER" },
@@ -71,6 +72,26 @@ await createCollection(bearer, {
   ],
   permissions: {
     insert: "ANYONE",
+    read: "ADMIN",
+    update: "ADMIN",
+    remove: "ADMIN",
+  },
+});
+
+await createCollection(bearer, {
+  id: "FormVersions",
+  displayName: "FormCraft — Form Versions",
+  fields: [
+    { key: "formId", displayName: "Form ID", type: "TEXT" },
+    { key: "version", displayName: "Version", type: "NUMBER" },
+    { key: "title", displayName: "Title", type: "TEXT" },
+    { key: "description", displayName: "Description", type: "TEXT" },
+    { key: "fields", displayName: "Fields (JSON)", type: "TEXT" },
+    { key: "theme", displayName: "Theme (JSON)", type: "TEXT" },
+    { key: "createdDate", displayName: "Created Date", type: "TEXT" },
+  ],
+  permissions: {
+    insert: "ADMIN",
     read: "ADMIN",
     update: "ADMIN",
     remove: "ADMIN",
