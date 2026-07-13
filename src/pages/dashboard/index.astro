@@ -41,9 +41,21 @@ const origin = Astro.url.origin;
         <h1 class="text-4xl font-extrabold tracking-tight text-[var(--color-brand-dark)]">My forms</h1>
         {quota && (
           <p class="mt-2 text-sm font-bold text-[var(--color-brand-muted)]">
-            {quota.tier === "pro"
-              ? "Pro plan · unlimited forms & responses"
-              : `Free plan · ${quota.forms}/${quota.maxForms} form${quota.maxForms === 1 ? "" : "s"} · showing up to ${quota.visibleSubmissionsPerForm} responses per form`}
+            {quota.tier === "pro" ? (
+              <>
+                Pro plan · unlimited forms & responses ·{" "}
+                <a href="/dashboard/subscription" class="text-[var(--color-brand-primary)] underline-offset-2 hover:underline">
+                  Manage subscription
+                </a>
+              </>
+            ) : (
+              <>
+                Free plan · {quota.forms}/{quota.maxForms} form{quota.maxForms === 1 ? "" : "s"} · showing up to {quota.visibleSubmissionsPerForm} responses per form ·{" "}
+                <a href="/dashboard/subscription" class="text-[var(--color-brand-primary)] underline-offset-2 hover:underline">
+                  Upgrade
+                </a>
+              </>
+            )}
           </p>
         )}
       </div>

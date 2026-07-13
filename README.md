@@ -80,6 +80,9 @@ npm run release   # wix release  → publishes to the wix-site-host URL
   and returns `redirectSession.fullUrl`. `UpgradeButton.tsx` drives it from the pricing
   page and the dashboard limit banner; 401 routes through login first. Post-checkout
   returns to `/dashboard?upgraded=1`.
+- **Manage:** `/dashboard/subscription` shows Free/Pro status, billing history from
+  Pricing Plan orders, Upgrade (Free), and **Cancel at period end** via member
+  `requestCancellation` (`NEXT_PAYMENT_DATE`).
 - **Enforcement:** free = 1 published form + 100 responses/mo; Pro = unlimited. Checked
   on publish (`PATCH /api/forms/[id]`) and submit (`/api/submit`).
 

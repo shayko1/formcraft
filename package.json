@@ -25,6 +25,7 @@
     "@wix/essentials": "^1.0.6",
     "@wix/media": "^1.0.264",
     "@wix/members": "^1.0.452",
+    "@wix/pricing-plans": "^1.0.346",
     "@wix/redirects": "^1.0.113",
     "@wix/sdk": "^1.21.5",
     "astro": "^5.8.0",

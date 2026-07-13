@@ -32,6 +32,17 @@ const { active } = Astro.props;
         My forms
       </a>
       <a
+        href="/dashboard/subscription"
+        class:list={[
+          "whitespace-nowrap text-sm font-bold transition",
+          active === "subscription"
+            ? "text-[var(--color-brand-primary)]"
+            : "text-[var(--color-brand-muted)] hover:text-[var(--color-brand-primary)]",
+        ]}
+      >
+        Subscription
+      </a>
+      <a
         href="/pricing"
         class="whitespace-nowrap text-sm font-bold text-[var(--color-brand-muted)] transition hover:text-[var(--color-brand-primary)]"
       >
@@ -64,6 +75,17 @@ const { active } = Astro.props;
           ]}
         >
           My forms
+        </a>
+        <a
+          href="/dashboard/subscription"
+          class:list={[
+            "block rounded-xl px-4 py-3 text-sm font-bold",
+            active === "subscription"
+              ? "bg-[var(--color-brand-light)] text-[var(--color-brand-primary)]"
+              : "text-[var(--color-brand-dark)] hover:bg-[var(--color-brand-light)]",
+          ]}
+        >
+          Subscription
         </a>
         <a
           href="/pricing"
