@@ -213,9 +213,10 @@ export default function CanvasEditor({
           (viewportRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         className={[
-          "min-h-[320px] flex-1 overflow-x-hidden overflow-y-auto rounded-2xl border-2 border-dashed p-2 transition touch-pan-y sm:min-h-[360px] sm:p-3",
+          "min-h-[320px] flex-1 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border-2 border-dashed p-2 transition sm:min-h-[360px] sm:p-3",
           isOver ? "border-brand-400 bg-brand-50/40" : "border-slate-200 bg-slate-100/80",
         ].join(" ")}
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         onClick={() => onSelect(null)}
       >
         {/* Outer box holds scaled visual size so scroll height is correct */}

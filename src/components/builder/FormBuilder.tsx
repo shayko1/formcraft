@@ -174,32 +174,32 @@ export default function FormBuilder(props: FormBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  // Lock document scroll on desktop only — mobile must scroll to reach the canvas.
+  // Always lock document scroll — the editor scrolls inside a fixed 100dvh shell
+  // (required inside the Wix dashboard iframe; body scroll does not work there).
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const apply = () => {
-      const html = document.documentElement;
-      const body = document.body;
-      if (mq.matches) {
-        html.style.overflow = "hidden";
-        body.style.overflow = "hidden";
-        html.style.height = "100%";
-        body.style.height = "100%";
-      } else {
-        html.style.overflow = "";
-        body.style.overflow = "";
-        html.style.height = "";
-        body.style.height = "";
-      }
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlHeight: html.style.height,
+      bodyHeight: body.style.height,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
     };
-    apply();
-    mq.addEventListener("change", apply);
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.height = "100%";
+    body.style.height = "100%";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
     return () => {
-      mq.removeEventListener("change", apply);
-      document.documentElement.style.overflow = "";
-      document.body.style.overflow = "";
-      document.documentElement.style.height = "";
-      document.body.style.height = "";
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.height = prev.htmlHeight;
+      body.style.height = prev.bodyHeight;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
     };
   }, []);
 
@@ -550,8 +550,8 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Desktop: viewport-locked. Mobile: page scrolls so canvas is reachable. */}
-      <div className="flex min-h-[100dvh] flex-col bg-slate-100 lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
+      {/* Fixed viewport shell — scroll happens inside panes (Wix iframe safe). */}
+      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-slate-100">
       {/* Top bar — stays visible */}
       <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -700,18 +700,21 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div className="grid min-h-0 w-full min-w-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4">
+      <div
+        className="grid min-h-0 w-full min-w-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+      >
         {/* Desktop palette — independent scroll */}
         <aside className="hidden min-h-0 min-w-0 overflow-y-auto overscroll-contain lg:block">
           <Palette onAdd={addField} />
         </aside>
 
-        {/* Canvas column — on mobile scrolls with the page; desktop stays put */}
+        {/* Canvas column */}
         <main
           className={[
             "min-h-0 min-w-0",
             tab === "build"
-              ? "flex flex-col lg:h-full lg:overflow-hidden"
+              ? "flex min-h-full flex-col lg:h-full lg:overflow-hidden"
               : "hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
           ].join(" ")}
         >
@@ -770,8 +773,8 @@ export default function FormBuilder(props: FormBuilderProps) {
             ))}
           </div>
 
-          {/* Canvas — allow vertical scroll on mobile */}
-          <div className="min-h-[70vh] flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
+          {/* Canvas area — tall enough on mobile; parent grid scrolls */}
+          <div className="min-h-[55vh] flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
             {isCanvas ? (
               <CanvasEditor
                 fields={fields}
@@ -804,8 +807,15 @@ export default function FormBuilder(props: FormBuilderProps) {
         <aside
           className={[
             "min-h-0 min-w-0 space-y-3 overflow-y-auto overscroll-contain",
-            tab === "build" ? "hidden lg:block lg:h-full" : "block h-full",
+            tab === "build"
+              ? "hidden lg:block lg:h-full"
+              : "block min-h-full lg:h-full",
           ].join(" ")}
+          style={
+            tab !== "build"
+              ? { WebkitOverflowScrolling: "touch", touchAction: "pan-y" }
+              : undefined
+          }
         >
           {/* Mobile: keep a peek of the form while editing settings */}
           {(tab === "settings" || tab === "design") && (
