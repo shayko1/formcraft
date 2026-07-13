@@ -17,10 +17,11 @@ const origin = Astro.url.origin;
 <Layout
   title={`Edit · ${form.title}`}
   noindex
-  htmlClass="h-full"
-  bodyClass="h-full overflow-hidden bg-slate-100 text-slate-900"
+  htmlClass="min-h-full"
+  bodyClass="min-h-full bg-slate-100 text-slate-900"
 >
-  <div class="relative h-full w-full min-w-0 overflow-hidden">
+  {/* Mobile: normal document scroll (Wix iframe). Desktop shell locks height in FormBuilder. */}
+  <div class="relative w-full min-w-0">
     <FormBuilder
       client:load
       formId={form.id}

@@ -163,7 +163,7 @@ export default function CanvasEditor({
   const selected = fields.find((f) => f.id === selectedId) ?? null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
       {/* Desktop toolbar */}
       <div className="hidden shrink-0 flex-wrap items-center gap-2 text-xs text-slate-500 sm:flex">
         <span className="rounded-md bg-slate-100 px-2 py-1 font-medium">
@@ -213,10 +213,13 @@ export default function CanvasEditor({
           (viewportRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         className={[
-          "min-h-[320px] flex-1 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border-2 border-dashed p-2 transition sm:min-h-[360px] sm:p-3",
+          "min-h-[320px] rounded-2xl border-2 border-dashed p-2 transition sm:min-h-[360px] sm:p-3",
+          // Mobile: grow with artboard so the page (iframe) can scroll.
+          // Desktop: nested scroll inside the shell.
+          "overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain",
           isOver ? "border-brand-400 bg-brand-50/40" : "border-slate-200 bg-slate-100/80",
         ].join(" ")}
-        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+        style={{ WebkitOverflowScrolling: "touch" }}
         onClick={() => onSelect(null)}
       >
         {/* Outer box holds scaled visual size so scroll height is correct */}

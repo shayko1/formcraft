@@ -121,8 +121,10 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [fullPreview, setFullPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [isNarrow, setIsNarrow] = useState(false);
-  /** Visible host height (iframe-safe). 100dvh overshoots Wix and cuts the page. */
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : true,
+  );
+  /** Desktop shell height only — mobile uses normal document scroll. */
   const [shellH, setShellH] = useState<number | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -151,8 +153,12 @@ export default function FormBuilder(props: FormBuilderProps) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // Size the editor to the *visible* frame (window.innerHeight), not CSS dvh.
+  // Desktop only: size shell to visible frame (not 100dvh — overshoots Wix iframe).
   useEffect(() => {
+    if (isNarrow) {
+      setShellH(null);
+      return;
+    }
     const measure = () => {
       const vv = window.visualViewport;
       const h = Math.round(vv?.height ?? window.innerHeight);
@@ -161,13 +167,11 @@ export default function FormBuilder(props: FormBuilderProps) {
     measure();
     window.addEventListener("resize", measure);
     window.visualViewport?.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("scroll", measure);
     return () => {
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("scroll", measure);
     };
-  }, []);
+  }, [isNarrow]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -205,8 +209,10 @@ export default function FormBuilder(props: FormBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  // Lock document scroll — editor uses a fixed inset shell that fills the host iframe.
+  // Desktop only: lock document scroll for the app shell.
+  // Mobile must keep native page scroll — locking html/body is why the iframe felt "cut".
   useEffect(() => {
+    if (isNarrow) return;
     const html = document.documentElement;
     const body = document.body;
     const prev = {
@@ -231,7 +237,7 @@ export default function FormBuilder(props: FormBuilderProps) {
       html.style.overscrollBehavior = prev.htmlOverscroll;
       body.style.overscrollBehavior = prev.bodyOverscroll;
     };
-  }, []);
+  }, [isNarrow]);
 
   async function persist() {
     setSave("saving");
@@ -580,22 +586,24 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Height = visible iframe (innerHeight), so content is not cut off. */}
+      {/* Mobile: document flow (page scrolls). Desktop: fixed shell. */}
       <div
         ref={shellRef}
-        className="flex flex-col overflow-hidden bg-slate-100"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: shellH != null ? `${shellH}px` : "100%",
-          maxHeight: shellH != null ? `${shellH}px` : "100%",
-          zIndex: 0,
-        }}
+        className={[
+          "flex flex-col bg-slate-100",
+          "relative w-full",
+          "lg:fixed lg:inset-x-0 lg:top-0 lg:z-0 lg:overflow-hidden",
+        ].join(" ")}
+        style={
+          !isNarrow && shellH != null
+            ? { height: `${shellH}px`, maxHeight: `${shellH}px` }
+            : undefined
+        }
       >
-      {/* Top bar — stays visible */}
-      <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      {/* Sticky chrome on mobile so the page can scroll under it */}
+      <div className="sticky top-0 z-30 bg-white lg:static lg:contents">
+      {/* Top bar */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href="/dashboard"
@@ -697,7 +705,7 @@ export default function FormBuilder(props: FormBuilderProps) {
       </div>
 
       {/* Mobile tabs */}
-      <div className="z-20 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
+      <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -716,6 +724,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             {t.label}
           </button>
         ))}
+      </div>
       </div>
 
       {/* Desktop full preview — real form width, no builder chrome */}
@@ -743,8 +752,13 @@ export default function FormBuilder(props: FormBuilderProps) {
         </div>
       ) : (
       <div
-        className="grid min-h-0 w-full min-w-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-y-contain p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4"
-        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+        className={[
+          "grid w-full min-w-0 flex-1 grid-cols-1 gap-4 p-3 sm:p-4",
+          // Mobile: let the page grow — native document scroll (iframe-safe).
+          // Desktop: constrained pane with internal scroll.
+          "min-h-0 overflow-visible",
+          "lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4",
+        ].join(" ")}
       >
         {/* Desktop palette — independent scroll */}
         <aside className="hidden min-h-0 min-w-0 overflow-y-auto overscroll-contain lg:block">
@@ -756,7 +770,7 @@ export default function FormBuilder(props: FormBuilderProps) {
           className={[
             "min-h-0 min-w-0",
             tab === "build"
-              ? "flex min-h-full flex-col lg:h-full lg:overflow-hidden"
+              ? "flex flex-col lg:h-full lg:overflow-hidden"
               : "hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
           ].join(" ")}
         >
@@ -815,8 +829,8 @@ export default function FormBuilder(props: FormBuilderProps) {
             ))}
           </div>
 
-          {/* Canvas area — tall enough on mobile; parent grid scrolls */}
-          <div className="min-h-[55vh] flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
+          {/* Canvas — grows on mobile (page scrolls); nested scroll on desktop */}
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             {isCanvas ? (
               <CanvasEditor
                 fields={fields}
@@ -848,16 +862,11 @@ export default function FormBuilder(props: FormBuilderProps) {
         {/* Right column — scrolls on its own; canvas column does not move */}
         <aside
           className={[
-            "min-h-0 min-w-0 space-y-3 overflow-y-auto overscroll-contain",
+            "min-h-0 min-w-0 space-y-3",
             tab === "build"
-              ? "hidden lg:block lg:h-full"
-              : "block min-h-full lg:h-full",
+              ? "hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain"
+              : "block overflow-visible lg:h-full lg:overflow-y-auto lg:overscroll-contain",
           ].join(" ")}
-          style={
-            tab !== "build"
-              ? { WebkitOverflowScrolling: "touch", touchAction: "pan-y" }
-              : undefined
-          }
         >
           {/* Mobile: keep a peek of the form while editing settings */}
           {(tab === "settings" || tab === "design") && (
