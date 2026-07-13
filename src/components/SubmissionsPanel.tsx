@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   type FieldConfig,
   type InternalFieldConfig,
+  isDecorativeField,
   isNameField,
   isPhoneField,
 } from "../lib/form-schema";
@@ -90,8 +91,16 @@ function findDuplicateIds(fields: FieldConfig[], rows: SubmissionRow[]): Set<str
   return dupes;
 }
 
+function answerFields(fields: FieldConfig[]): FieldConfig[] {
+  return fields.filter((f) => !isDecorativeField(f.type));
+}
+
 function allExportColumnIds(fields: FieldConfig[], internalFields: InternalFieldConfig[]): string[] {
-  return [...fields.map((f) => f.id), ...internalFields.map((f) => f.id), "_createdDate"];
+  return [
+    ...answerFields(fields).map((f) => f.id),
+    ...internalFields.map((f) => f.id),
+    "_createdDate",
+  ];
 }
 
 export default function SubmissionsPanel({
@@ -137,8 +146,10 @@ export default function SubmissionsPanel({
   const filtered = search
     ? filterBase.filter((r) => {
         const q = search.toLowerCase();
-        return fields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q)) ||
-          internalFields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q));
+        return (
+          answerFields(fields).some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q)) ||
+          internalFields.some((f) => cellValue(r.data[f.id]).toLowerCase().includes(q))
+        );
       })
     : filterBase;
 
@@ -317,13 +328,15 @@ export default function SubmissionsPanel({
     </button>
   );
 
+  // Image/heading are UI-only — never answer columns in the table or CSV.
+  const dataFields = answerFields(fields);
   type TableCol = { id: string; label: string; dir?: FieldConfig["dir"]; internal?: boolean };
   const columns: TableCol[] = [
-    ...fields.map((f) => ({ id: f.id, label: f.label, dir: f.dir })),
+    ...dataFields.map((f) => ({ id: f.id, label: f.label, dir: f.dir })),
     ...internalFields.map((f) => ({ id: f.id, label: f.label, internal: true as const })),
   ];
   const exportColumnOptions = [
-    ...fields.map((f) => ({ id: f.id, label: f.label })),
+    ...dataFields.map((f) => ({ id: f.id, label: f.label })),
     ...internalFields.map((f) => ({ id: f.id, label: `${f.label} (internal)` })),
     { id: "_createdDate", label: "Submitted" },
   ];
@@ -585,7 +598,7 @@ export default function SubmissionsPanel({
                   Submitted answers
                 </p>
                 <dl className="space-y-3">
-                  {fields.map((f) => (
+                  {dataFields.map((f) => (
                     <div key={f.id}>
                       <dt className="text-xs font-medium text-slate-500">{f.label}</dt>
                       <dd className="mt-0.5 text-sm text-slate-900" dir={f.dir === "ltr" ? "ltr" : undefined}>

@@ -4,6 +4,7 @@ import { getFormById } from "../../../lib/forms";
 import { listSubmissions, markExported } from "../../../lib/submissions";
 import { getVisibleSubmissionsLimit } from "../../../lib/plan";
 import { buildCsv } from "../../../lib/csv";
+import { isDecorativeField } from "../../../lib/form-schema";
 import { parseUploadedFile, uploadedFileLabel } from "../../../lib/upload";
 
 // POST /api/submissions/export  { formId, ids, fieldIds? } — CSV + mark exported.
@@ -35,7 +36,9 @@ export const POST: APIRoute = async ({ request }) => {
   const selected = visible.filter((s) => idSet.has(s.id));
 
   const allHeaders = [
-    ...form.fields.map((f) => ({ id: f.id, label: f.label })),
+    ...form.fields
+      .filter((f) => !isDecorativeField(f.type))
+      .map((f) => ({ id: f.id, label: f.label })),
     ...form.internalFields.map((f) => ({ id: f.id, label: f.label })),
     { id: "_createdDate", label: "Submitted" },
   ];
