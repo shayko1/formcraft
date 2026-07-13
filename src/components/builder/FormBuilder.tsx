@@ -652,7 +652,7 @@ export default function FormBuilder(props: FormBuilderProps) {
           <button
             type="button"
             onClick={() => void openVersions()}
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="hidden rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:inline-flex"
             title="Published version history — restore into draft"
           >
             Versions
@@ -690,7 +690,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             disabled={save === "saving"}
             className="rounded-lg bg-grad-brand px-3 py-1.5 text-sm font-bold text-white shadow-sm transition hover:opacity-90 sm:px-4"
           >
-            Publish
+            Publish{liveVersion != null ? ` · v${liveVersion}` : ""}
           </button>
           {published && (
             <button
@@ -704,7 +704,7 @@ export default function FormBuilder(props: FormBuilderProps) {
         </div>
       </div>
 
-      {/* Mobile tabs */}
+      {/* Mobile tabs + Versions (Versions is easy to miss in the crowded top bar) */}
       <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 lg:hidden">
         {tabs.map((t) => (
           <button
@@ -724,6 +724,13 @@ export default function FormBuilder(props: FormBuilderProps) {
             {t.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => void openVersions()}
+          className="shrink-0 px-3 py-2 text-sm font-semibold text-slate-500 transition hover:text-brand-600"
+        >
+          Versions{liveVersion != null ? ` · v${liveVersion}` : ""}
+        </button>
       </div>
       </div>
 
