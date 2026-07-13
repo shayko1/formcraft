@@ -124,9 +124,6 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [isNarrow, setIsNarrow] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : true,
   );
-  /** Desktop shell height only — mobile uses normal document scroll. */
-  const [shellH, setShellH] = useState<number | null>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
 
   const savedSnapshot = useRef("");
   const isCanvas = theme.layoutMode === "canvas";
@@ -152,26 +149,6 @@ export default function FormBuilder(props: FormBuilderProps) {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
-
-  // Desktop only: size shell to visible frame (not 100dvh — overshoots Wix iframe).
-  useEffect(() => {
-    if (isNarrow) {
-      setShellH(null);
-      return;
-    }
-    const measure = () => {
-      const vv = window.visualViewport;
-      const h = Math.round(vv?.height ?? window.innerHeight);
-      setShellH(h > 0 ? h : null);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("resize", measure);
-    };
-  }, [isNarrow]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -208,36 +185,6 @@ export default function FormBuilder(props: FormBuilderProps) {
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
-
-  // Desktop only: lock document scroll for the app shell.
-  // Mobile must keep native page scroll — locking html/body is why the iframe felt "cut".
-  useEffect(() => {
-    if (isNarrow) return;
-    const html = document.documentElement;
-    const body = document.body;
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      htmlHeight: html.style.height,
-      bodyHeight: body.style.height,
-      htmlOverscroll: html.style.overscrollBehavior,
-      bodyOverscroll: body.style.overscrollBehavior,
-    };
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    html.style.height = "100%";
-    body.style.height = "100%";
-    html.style.overscrollBehavior = "none";
-    body.style.overscrollBehavior = "none";
-    return () => {
-      html.style.overflow = prev.htmlOverflow;
-      body.style.overflow = prev.bodyOverflow;
-      html.style.height = prev.htmlHeight;
-      body.style.height = prev.bodyHeight;
-      html.style.overscrollBehavior = prev.htmlOverscroll;
-      body.style.overscrollBehavior = prev.bodyOverscroll;
-    };
-  }, [isNarrow]);
 
   async function persist() {
     setSave("saving");
@@ -586,24 +533,10 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Mobile: document flow (page scrolls). Desktop: fixed shell. */}
-      <div
-        ref={shellRef}
-        className={[
-          "flex flex-col bg-slate-100",
-          "relative w-full",
-          "lg:fixed lg:inset-x-0 lg:top-0 lg:z-0 lg:overflow-hidden",
-        ].join(" ")}
-        style={
-          !isNarrow && shellH != null
-            ? { height: `${shellH}px`, maxHeight: `${shellH}px` }
-            : undefined
-        }
-      >
-      {/* Sticky chrome on mobile so the page can scroll under it */}
-      <div className="sticky top-0 z-30 bg-white lg:static lg:contents">
+      {/* Simple document flow — no fixed/overflow lock (those blanked the Wix iframe editor). */}
+      <div className="relative flex min-h-full w-full flex-col bg-slate-100">
       {/* Top bar */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      <div className="sticky top-0 z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href="/dashboard"
@@ -732,7 +665,6 @@ export default function FormBuilder(props: FormBuilderProps) {
           Versions{liveVersion != null ? ` · v${liveVersion}` : ""}
         </button>
       </div>
-      </div>
 
       {/* Desktop full preview — real form width, no builder chrome */}
       {fullPreview ? (
@@ -758,27 +690,17 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </div>
       ) : (
-      <div
-        className={[
-          "grid w-full min-w-0 flex-1 grid-cols-1 gap-4 p-3 sm:p-4",
-          // Mobile: let the page grow — native document scroll (iframe-safe).
-          // Desktop: constrained pane with internal scroll.
-          "min-h-0 overflow-visible",
-          "lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:grid-rows-1 lg:gap-4 lg:overflow-hidden lg:p-4",
-        ].join(" ")}
-      >
-        {/* Desktop palette — independent scroll */}
-        <aside className="hidden min-h-0 min-w-0 overflow-y-auto overscroll-contain lg:block">
+      <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-4 p-3 sm:p-4 lg:grid-cols-[220px_minmax(0,1fr)_320px] lg:items-start lg:gap-4 lg:p-4">
+        {/* Desktop palette */}
+        <aside className="hidden min-w-0 lg:block lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:overscroll-contain">
           <Palette onAdd={addField} />
         </aside>
 
         {/* Canvas column */}
         <main
           className={[
-            "min-h-0 min-w-0",
-            tab === "build"
-              ? "flex flex-col lg:h-full lg:overflow-hidden"
-              : "hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden",
+            "min-w-0",
+            tab === "build" ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           ].join(" ")}
         >
           <div className="mb-3 w-full min-w-0 shrink-0 lg:hidden">
@@ -836,8 +758,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             ))}
           </div>
 
-          {/* Canvas — grows on mobile (page scrolls); nested scroll on desktop */}
-          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+          <div className="min-h-[280px]">
             {isCanvas ? (
               <CanvasEditor
                 fields={fields}
@@ -866,13 +787,13 @@ export default function FormBuilder(props: FormBuilderProps) {
           </div>
         </main>
 
-        {/* Right column — scrolls on its own; canvas column does not move */}
+        {/* Right column */}
         <aside
           className={[
-            "min-h-0 min-w-0 space-y-3",
+            "min-w-0 space-y-3",
             tab === "build"
-              ? "hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain"
-              : "block overflow-visible lg:h-full lg:overflow-y-auto lg:overscroll-contain",
+              ? "hidden lg:block lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:overscroll-contain"
+              : "block lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:overscroll-contain",
           ].join(" ")}
         >
           {/* Mobile: keep a peek of the form while editing settings */}
