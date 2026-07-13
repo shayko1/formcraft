@@ -603,10 +603,9 @@ export default function FormBuilder(props: FormBuilderProps) {
             type="button"
             onClick={() => void openVersions()}
             className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            title="Version history"
+            title="Published version history — restore into draft"
           >
-            <span className="sm:hidden">Hist</span>
-            <span className="hidden sm:inline">Versions</span>
+            Versions
           </button>
           <button
             type="button"
@@ -978,6 +977,20 @@ export default function FormBuilder(props: FormBuilderProps) {
                 </div>
 
                 <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Version history
+                </p>
+                <p className="mb-2 text-xs text-slate-500">
+                  Each Publish creates a snapshot (last 10). Restore loads it into the draft — Publish again to go live.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void openVersions()}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Manage versions
+                </button>
+
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Submit button
                 </p>
                 <input
@@ -1244,6 +1257,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             <p className="mt-1 text-sm text-slate-500">
               {liveVersion ? `Version ${liveVersion} is live. ` : ""}
               Share this link to collect responses. Draft edits stay private until you Publish again.
+              Use <strong>Versions</strong> in the top bar to restore an older publish into the draft.
             </p>
             <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
               <input
