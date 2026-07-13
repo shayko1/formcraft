@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getFormById, updateForm } from "../../lib/forms";
+import { getFormById, updateForm, getPublicFormContent } from "../../lib/forms";
 import { insertSubmission, existsWithValue } from "../../lib/submissions";
 import { validateFields, isEmptyValue, fieldsRequiringUnique, isDecorativeField } from "../../lib/form-schema";
 
@@ -21,7 +21,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (!form) return json(404, "This form does not exist.");
   if (!form.published) return json(403, "This form is not accepting responses.");
 
-  const fieldErrors = validateFields(form.fields, data);
+  const pub = getPublicFormContent(form);
+  const fieldErrors = validateFields(pub.fields, data);
   if (fieldErrors.length > 0) {
     return json(400, fieldErrors[0]?.message ?? "Please check the highlighted fields.");
   }
@@ -30,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
   // Free-tier limits only cap how many are shown in the admin panel (see submissions page).
 
   // Per-field unique values (any field type). Opt out globally via theme.allowDuplicateResponses.
-  for (const field of fieldsRequiringUnique(form.fields, form.theme.allowDuplicateResponses)) {
+  for (const field of fieldsRequiringUnique(pub.fields, pub.theme.allowDuplicateResponses)) {
     if (isEmptyValue(data[field.id])) continue;
     const raw = data[field.id];
     const value = Array.isArray(raw) ? raw.map(String).join(", ") : String(raw);
@@ -43,7 +44,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     // Only persist public field answers — strip unknown / decorative / internal keys.
     const allowed = new Set(
-      form.fields.filter((f) => !isDecorativeField(f.type)).map((f) => f.id),
+      pub.fields.filter((f) => !isDecorativeField(f.type)).map((f) => f.id),
     );
     const clean: Record<string, unknown> = {};
     for (const key of Object.keys(data)) {

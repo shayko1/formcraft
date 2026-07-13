@@ -35,7 +35,8 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   if (Array.isArray(body.fields)) patch.fields = body.fields;
   if (Array.isArray(body.internalFields)) patch.internalFields = body.internalFields;
   if (body.theme) patch.theme = body.theme;
-  if (typeof body.published === "boolean") patch.published = body.published;
+  // Draft-only: publishing must go through POST /api/forms/:id/publish
+  if (body.published === false) patch.published = false;
 
   try {
     await updateForm(id, patch);

@@ -8,6 +8,8 @@ export const SITE_ID = "6b080820-d034-497b-9643-dafcdb9e15d5";
 
 export const FORMS_COLLECTION = "Forms";
 export const SUBMISSIONS_COLLECTION = "Submissions";
+export const FORM_VERSIONS_COLLECTION = "FormVersions";
+export const MAX_FORM_VERSIONS = 10;
 
 // Admin data access via elevation. `auth.elevate()` wraps each @wix/data function so
 // it runs with admin-level permissions inside the Wix-managed headless backend — no

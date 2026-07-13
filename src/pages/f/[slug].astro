@@ -1,7 +1,7 @@
 ---
 import Layout from "../../components/Layout.astro";
 import FormRenderer from "../../components/FormRenderer";
-import { getFormBySlug } from "../../lib/forms";
+import { getFormBySlug, getPublicFormContent } from "../../lib/forms";
 import {
   DEFAULT_THEME,
   resolveCardAppearance,
@@ -13,13 +13,14 @@ import {
 const { slug } = Astro.params;
 const form = slug ? await getFormBySlug(slug) : null;
 const available = form && form.published;
-const theme = { ...DEFAULT_THEME, ...(form?.theme ?? {}) };
+const pub = available ? getPublicFormContent(form!) : null;
+const theme = { ...DEFAULT_THEME, ...(pub?.theme ?? {}) };
 const dir = theme.dir ?? "ltr";
 const page = resolvePageBackground(theme);
 const card = resolveCardAppearance(theme);
 const darkCard = isDarkCardBackground(theme);
 const isInk = theme.pageBackground === "ink";
-const canvas = available ? usesCanvasLayout(theme, form!.fields) : false;
+const canvas = available && pub ? usesCanvasLayout(theme, pub.fields) : false;
 const pageStyle = page.style
   ? Object.entries(page.style)
       .map(([k, v]) => `${k}:${v}`)
@@ -30,8 +31,8 @@ const cardStyle = Object.entries(card.style)
   .join(";");
 ---
 <Layout
-  title={available ? form!.title : "Form unavailable"}
-  description={available ? form!.description || `Fill out ${form!.title}` : undefined}
+  title={available && pub ? pub.title : "Form unavailable"}
+  description={available && pub ? pub.description || `Fill out ${pub.title}` : undefined}
   noindex
   dir={dir}
   lang={dir === "rtl" ? "he" : "en"}
@@ -42,14 +43,14 @@ const cardStyle = Object.entries(card.style)
       "mx-auto flex min-h-screen flex-col justify-center px-3 py-8 sm:px-4 sm:py-10",
       canvas ? "max-w-3xl" : "max-w-xl",
     ]}>
-      {available ? (
+      {available && pub ? (
         <div class:list={[card.className, darkCard && "[&_h1]:text-slate-50 [&_label]:text-slate-200 [&_p]:text-slate-300"]} style={cardStyle}>
           <FormRenderer
             client:load
             formId={form!.id}
-            title={form!.title}
-            description={form!.description}
-            fields={form!.fields}
+            title={pub.title}
+            description={pub.description}
+            fields={pub.fields}
             theme={theme}
           />
         </div>

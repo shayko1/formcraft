@@ -204,7 +204,7 @@ export default function CanvasEditor({
       </div>
 
       <p className="shrink-0 px-0.5 text-xs text-slate-500 sm:hidden">
-        Tap a field · drag the handle to move · pinch-scroll the board
+        Tap a field · use Move handle to drag · scroll the board
       </p>
 
       <div
@@ -213,7 +213,7 @@ export default function CanvasEditor({
           (viewportRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         className={[
-          "min-h-[280px] flex-1 overflow-x-hidden overflow-y-auto rounded-2xl border-2 border-dashed p-2 transition sm:min-h-[360px] sm:p-3",
+          "min-h-[320px] flex-1 overflow-x-hidden overflow-y-auto rounded-2xl border-2 border-dashed p-2 transition touch-pan-y sm:min-h-[360px] sm:p-3",
           isOver ? "border-brand-400 bg-brand-50/40" : "border-slate-200 bg-slate-100/80",
         ].join(" ")}
         onClick={() => onSelect(null)}
@@ -308,7 +308,10 @@ export default function CanvasEditor({
                 >
                   {/* Always-visible drag handle on mobile when selected */}
                   <div
-                    onPointerDown={(e) => startDrag(f.id, "move", e)}
+                    onPointerDown={(e) => {
+                      // Drag only from handle — rest of card allows scroll on mobile
+                      startDrag(f.id, "move", e);
+                    }}
                     className={[
                       "absolute -top-7 start-0 z-10 flex h-7 touch-none items-center gap-1 rounded-t-md px-2 text-[11px] font-bold text-white",
                       isSel ? "opacity-100" : "pointer-events-none opacity-0",
@@ -321,18 +324,13 @@ export default function CanvasEditor({
                   </div>
 
                   <div
-                    onPointerDown={(e) => {
-                      // Whole card is draggable; keep taps for select
-                      startDrag(f.id, "move", e);
-                    }}
                     className={[
-                      "h-full w-full touch-none overflow-hidden rounded-lg p-2",
+                      "h-full w-full overflow-hidden rounded-lg p-2",
                       fieldBg.className,
                     ]
                       .filter(Boolean)
                       .join(" ")}
                     style={{
-                      touchAction: "none",
                       ...(fieldBg.backgroundColor
                         ? { backgroundColor: fieldBg.backgroundColor }
                         : {}),
