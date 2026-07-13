@@ -226,9 +226,11 @@ export default function CanvasEditor({
             height: height * scale,
           }}
         >
+          {/* Physical left + origin-top-left so scale matches stored layout.x even when
+              the artboard content is dir=rtl (logical start would pin to the right). */}
           <div
             className={[
-              "absolute start-0 top-0 origin-top-left shadow-xl shadow-slate-900/5 ring-1",
+              "absolute left-0 top-0 origin-top-left shadow-xl shadow-slate-900/5 ring-1",
               darkCard ? "ring-white/10" : "ring-slate-200",
             ].join(" ")}
             dir={theme.dir ?? "ltr"}

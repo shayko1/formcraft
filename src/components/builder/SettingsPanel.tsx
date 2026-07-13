@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   FIELD_BACKGROUND_PRESETS,
@@ -5,6 +6,7 @@ import {
   isPhoneField,
   type FieldConfig,
 } from "../../lib/form-schema";
+import { uploadToWixMedia } from "../../lib/upload";
 
 function IconRenderer({ name }: { name: string }) {
   const Icon = (LucideIcons as any)[name];
@@ -14,6 +16,7 @@ function IconRenderer({ name }: { name: string }) {
 
 interface SettingsPanelProps {
   field: FieldConfig | null;
+  formId: string;
   onChange: (patch: Partial<FieldConfig>) => void;
 }
 
@@ -21,7 +24,11 @@ const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-wide text-
 const inputCls =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200";
 
-export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
+export default function SettingsPanel({ field, formId, onChange }: SettingsPanelProps) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!field) {
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 p-8 text-center">
@@ -60,6 +67,21 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
     onChange({ options: next });
   };
 
+  const onImageFile = async (file: File | null) => {
+    setUploadError("");
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadToWixMedia(formId, file, { imagesOnly: true });
+      onChange({ src: uploaded.url });
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
@@ -77,20 +99,57 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           value={field.label}
           onChange={(e) => onChange({ label: e.target.value })}
           placeholder={field.type === "heading" ? "Section title" : "Field label"}
+          dir="auto"
         />
       </div>
 
       {field.type === "image" && (
-        <div>
-          <label className={labelCls}>Image URL</label>
+        <div className="space-y-2">
+          <label className={labelCls}>Image</label>
+          {field.src ? (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={field.src} alt="" className="max-h-40 w-full object-contain" />
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 text-xs font-bold text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+            >
+              {uploading ? "Uploading…" : field.src ? "Replace from laptop" : "Upload from laptop"}
+            </button>
+            {field.src && (
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => onChange({ src: "" })}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
           <input
-            className={inputCls}
-            value={field.src ?? ""}
-            onChange={(e) => onChange({ src: e.target.value })}
-            placeholder="https://…"
-            dir="ltr"
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => void onImageFile(e.target.files?.[0] ?? null)}
           />
-          <p className="mt-1 text-[11px] text-slate-400">Paste any public image link</p>
+          {uploadError && <p className="text-xs font-medium text-red-500">{uploadError}</p>}
+          <div>
+            <label className={labelCls}>Or paste image URL</label>
+            <input
+              className={inputCls}
+              value={field.src ?? ""}
+              onChange={(e) => onChange({ src: e.target.value })}
+              placeholder="https://…"
+              dir="ltr"
+            />
+          </div>
         </div>
       )}
 
@@ -270,6 +329,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
             value={field.placeholder ?? ""}
             onChange={(e) => onChange({ placeholder: e.target.value })}
             placeholder="Hint text inside the input"
+            dir="auto"
           />
         </div>
       )}
@@ -282,6 +342,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
           value={field.helpText ?? ""}
           onChange={(e) => onChange({ helpText: e.target.value })}
           placeholder="Optional hint below the field"
+          dir="auto"
         />
       </div>
       )}
@@ -306,6 +367,7 @@ export default function SettingsPanel({ field, onChange }: SettingsPanelProps) {
                   value={opt}
                   onChange={(e) => updateOption(i, e.target.value)}
                   placeholder={`Option ${i + 1}`}
+                  dir="auto"
                 />
                 <button
                   type="button"

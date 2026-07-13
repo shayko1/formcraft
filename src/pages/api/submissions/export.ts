@@ -4,6 +4,7 @@ import { getFormById } from "../../../lib/forms";
 import { listSubmissions, markExported } from "../../../lib/submissions";
 import { getVisibleSubmissionsLimit } from "../../../lib/plan";
 import { buildCsv } from "../../../lib/csv";
+import { parseUploadedFile, uploadedFileLabel } from "../../../lib/upload";
 
 // POST /api/submissions/export  { formId, ids, fieldIds? } — CSV + mark exported.
 export const POST: APIRoute = async ({ request }) => {
@@ -51,7 +52,15 @@ export const POST: APIRoute = async ({ request }) => {
     }
   }
 
-  const csvRows = selected.map((s) => ({ ...s.data, _createdDate: s.createdDate }));
+  const csvRows = selected.map((s) => {
+    const row: Record<string, unknown> = { _createdDate: s.createdDate };
+    for (const [key, val] of Object.entries(s.data)) {
+      const file = parseUploadedFile(val);
+      // Prefer URL in CSV so the cell is useful; fall back to label.
+      row[key] = file ? file.url || uploadedFileLabel(file) : val;
+    }
+    return row;
+  });
   const csv = buildCsv(headers, csvRows);
 
   await markExported(selected);

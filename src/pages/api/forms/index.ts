@@ -11,6 +11,23 @@ import {
 
 const fid = () => Math.random().toString(36).slice(2, 10);
 
+/** Mutable redirect — `Response.redirect()` headers are immutable and Astro's
+ *  Cloudflare/Wix adapter crashes with `TypeError: immutable` on Headers.append. */
+function redirect303(to: string | URL): Response {
+  const loc = typeof to === "string" ? to : to.toString();
+  return new Response(null, {
+    status: 303,
+    headers: { Location: loc },
+  });
+}
+
+/** Build an absolute https URL (Wix proxy hands us http:// internally). */
+function absUrl(path: string, requestUrl: string): string {
+  const u = new URL(path, requestUrl);
+  u.protocol = "https:";
+  return u.toString();
+}
+
 async function readBody(request: Request): Promise<{ templateId: string; layoutMode: LayoutMode }> {
   const ctype = request.headers.get("content-type") ?? "";
   if (ctype.includes("application/json")) {
@@ -47,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!ownerId) {
     if (redirect) {
-      return Response.redirect(new URL(loginRedirect("/dashboard/forms/new"), request.url), 303);
+      return redirect303(absUrl(loginRedirect("/dashboard/forms/new"), request.url));
     }
     return new Response(JSON.stringify({ message: "Please sign in again." }), {
       status: 401,
@@ -59,9 +76,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (!quota.canCreateForm) {
     const message = `Your ${quota.tier} plan is limited to ${quota.maxForms} form${quota.maxForms === 1 ? "" : "s"}. Upgrade to Pro for unlimited forms.`;
     if (redirect) {
-      return Response.redirect(
-        new URL(`/dashboard/forms/new?error=${encodeURIComponent(message)}`, request.url),
-        303,
+      return redirect303(
+        absUrl(`/dashboard/forms/new?error=${encodeURIComponent(message)}`, request.url),
       );
     }
     return new Response(JSON.stringify({ upgrade: true, message }), {
@@ -76,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
     ({ templateId, layoutMode } = await readBody(request));
   } catch {
     if (redirect) {
-      return Response.redirect(new URL("/dashboard/forms/new?error=Bad+request", request.url), 303);
+      return redirect303(absUrl("/dashboard/forms/new?error=Bad+request", request.url));
     }
     return new Response("Bad Request", { status: 400 });
   }
@@ -102,7 +118,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (redirect) {
-      return Response.redirect(new URL(`/dashboard/forms/${form.id}/edit`, request.url), 303);
+      return redirect303(absUrl(`/dashboard/forms/${form.id}/edit`, request.url));
     }
     return new Response(JSON.stringify({ id: form.id, slug: form.slug }), {
       status: 201,
@@ -111,9 +127,8 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create form";
     if (redirect) {
-      return Response.redirect(
-        new URL(`/dashboard/forms/new?error=${encodeURIComponent(message)}`, request.url),
-        303,
+      return redirect303(
+        absUrl(`/dashboard/forms/new?error=${encodeURIComponent(message)}`, request.url),
       );
     }
     return new Response(JSON.stringify({ message }), {

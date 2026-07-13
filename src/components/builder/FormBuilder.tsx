@@ -416,6 +416,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled form"
             aria-label="Form title"
+            dir="auto"
             className="min-w-0 flex-1 rounded-lg px-2 py-1 text-base font-bold text-slate-900 outline-none hover:bg-slate-50 focus:bg-slate-50 sm:text-lg"
           />
         </div>
@@ -541,6 +542,7 @@ export default function FormBuilder(props: FormBuilderProps) {
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Optional subtitle shown above the form"
+              dir="auto"
               className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </div>
@@ -707,7 +709,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Field settings
                 </p>
-                <SettingsPanel field={selected} onChange={updateSelected} />
+                <SettingsPanel field={selected} formId={props.formId} onChange={updateSelected} />
               </div>
               <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -796,6 +798,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                   value={theme.submitLabel ?? ""}
                   onChange={(e) => setTheme((t) => ({ ...t, submitLabel: e.target.value }))}
                   placeholder={DEFAULT_THEME.submitLabel}
+                  dir="auto"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
 
@@ -806,6 +809,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                   value={theme.thankYouTitle ?? ""}
                   onChange={(e) => setTheme((t) => ({ ...t, thankYouTitle: e.target.value }))}
                   placeholder={DEFAULT_THEME.thankYouTitle}
+                  dir="auto"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
 
@@ -817,6 +821,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                   onChange={(e) => setTheme((t) => ({ ...t, thankYouMessage: e.target.value }))}
                   placeholder={DEFAULT_THEME.thankYouMessage}
                   rows={2}
+                  dir="auto"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
 
@@ -874,6 +879,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                         setTheme((t) => ({ ...t, addEntryLabel: e.target.value }))
                       }
                       placeholder={DEFAULT_THEME.addEntryLabel}
+                      dir="auto"
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                     />
                   </>
@@ -1032,7 +1038,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             {FIELD_TYPES[activeId.replace("palette:", "") as FieldType]?.label}
           </div>
         ) : draggingField ? (
-          <FieldDragPreview field={draggingField} />
+          <FieldDragPreview field={draggingField} themeDir={theme.dir} />
         ) : null}
       </DragOverlay>
 
@@ -1115,7 +1121,6 @@ function StackCanvas({
   return (
     <div
       ref={setNodeRef}
-      dir={themeDir}
       className={[
         "min-h-[280px] min-w-0 rounded-2xl border-2 border-dashed p-3 transition sm:min-h-[400px] sm:p-4",
         isOver ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-white",

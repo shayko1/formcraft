@@ -97,7 +97,7 @@ export interface FieldConfig {
 
 /** Decorative / non-input types — never submitted or validated. */
 export function isDecorativeField(type: FieldType): boolean {
-  return type === "image" || type === "heading" || type === "file";
+  return type === "image" || type === "heading";
 }
 
 /** Admin-only columns on responses — never shown on the public form. */
@@ -406,11 +406,10 @@ export const FIELD_TYPES: Record<FieldType, FieldTypeMeta> = {
     hasOptions: false,
     hasPlaceholder: false,
     hasMinMax: false,
-    comingSoon: true,
     defaults: () => ({
       label: "File upload",
       required: false,
-      helpText: "File uploads coming soon",
+      helpText: "Images, PDF, or documents up to 10 MB",
     }),
   },
   image: {
@@ -572,11 +571,13 @@ export function ensureCanvasLayouts(fields: FieldConfig[] | null | undefined): F
         ? 120
         : f.type === "radio" || f.type === "checkbox"
           ? 88
-          : f.type === "image"
-            ? 160
-            : f.type === "heading"
-              ? 48
-              : 72;
+          : f.type === "file"
+            ? 96
+            : f.type === "image"
+              ? 160
+              : f.type === "heading"
+                ? 48
+                : 72;
     const layout: FieldLayout = { x, y, w: f.type === "heading" ? 360 : w, h, z: z++ };
     y += h + 16;
     return { ...f, layout };

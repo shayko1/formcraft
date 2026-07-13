@@ -5,6 +5,7 @@ import {
   isNameField,
   isPhoneField,
 } from "../lib/form-schema";
+import { parseUploadedFile, uploadedFileLabel } from "../lib/upload";
 import SubmissionsInsights from "./SubmissionsInsights";
 
 export interface SubmissionRow {
@@ -29,7 +30,29 @@ type Filter = "all" | "new" | "exported";
 
 function cellValue(v: unknown): string {
   if (v == null) return "";
-  return Array.isArray(v) ? v.join(", ") : String(v);
+  if (Array.isArray(v)) return v.join(", ");
+  const file = parseUploadedFile(v);
+  if (file) return uploadedFileLabel(file);
+  return String(v);
+}
+
+function CellDisplay({ value }: { value: unknown }) {
+  const file = parseUploadedFile(value);
+  if (file) {
+    return (
+      <a
+        href={file.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium text-brand-primary underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {file.name}
+      </a>
+    );
+  }
+  const text = cellValue(value);
+  return <>{text}</>;
 }
 
 // Generalized duplicate detection: group by normalized phone-like and name-like
@@ -439,7 +462,13 @@ export default function SubmissionsPanel({
                       ].join(" ")}
                       dir={c.dir === "ltr" ? "ltr" : undefined}
                     >
-                      {cellValue(r.data[c.id]) || (c.internal ? "—" : "")}
+                      {r.data[c.id] != null && r.data[c.id] !== "" ? (
+                        <CellDisplay value={r.data[c.id]} />
+                      ) : c.internal ? (
+                        "—"
+                      ) : (
+                        ""
+                      )}
                       {i === 1 && (
                         <span className="block text-xs text-slate-400 md:hidden">
                           {columns
@@ -560,7 +589,11 @@ export default function SubmissionsPanel({
                     <div key={f.id}>
                       <dt className="text-xs font-medium text-slate-500">{f.label}</dt>
                       <dd className="mt-0.5 text-sm text-slate-900" dir={f.dir === "ltr" ? "ltr" : undefined}>
-                        {cellValue(detailRow.data[f.id]) || "—"}
+                        {detailRow.data[f.id] != null && detailRow.data[f.id] !== "" ? (
+                          <CellDisplay value={detailRow.data[f.id]} />
+                        ) : (
+                          "—"
+                        )}
                       </dd>
                     </div>
                   ))}

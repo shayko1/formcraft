@@ -10,21 +10,32 @@ function IconRenderer({ name, className }: { name: string; className?: string })
 }
 
 /** Floating preview while dragging — no useSortable (must not share field ids). */
-export function FieldDragPreview({ field }: { field: FieldConfig }) {
+export function FieldDragPreview({
+  field,
+  themeDir = "ltr",
+}: {
+  field: FieldConfig;
+  themeDir?: FormTheme["dir"];
+}) {
   const meta = FIELD_TYPES[field.type] ?? FIELD_TYPES.text;
   return (
-    <div className="flex w-[360px] max-w-[90vw] cursor-grabbing items-center gap-3 rounded-xl border border-brand-400 bg-white p-3 shadow-2xl ring-2 ring-brand-100">
+    <div
+      dir="ltr"
+      className="flex w-[360px] max-w-[90vw] cursor-grabbing items-center gap-3 rounded-xl border border-brand-400 bg-white p-3 shadow-2xl ring-2 ring-brand-100"
+    >
       <span className="flex h-8 w-6 shrink-0 items-center justify-center text-slate-400">
         <IconRenderer name="GripVertical" />
       </span>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
         <IconRenderer name={meta.icon} />
       </span>
-      <div className="min-w-0 flex-1">
+      <div dir={themeDir} className="min-w-0 flex-1 text-start">
         <div className="truncate text-sm font-semibold text-slate-800">
           {field.label || "Untitled"}
         </div>
-        <div className="truncate text-xs text-slate-400">{meta.label}</div>
+        <div className="truncate text-xs text-slate-400" style={{ unicodeBidi: "plaintext" }}>
+          {meta.label}
+        </div>
       </div>
     </div>
   );
@@ -73,14 +84,8 @@ export default function FieldCard({
       ref={setNodeRef}
       style={style}
       onClick={onSelect}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
+      // Keep editor chrome LTR (grip / actions). Only the question label follows form dir.
+      dir="ltr"
       className={[
         "group flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm transition",
         enableDrag ? "cursor-grab active:cursor-grabbing" : "",
@@ -92,6 +97,14 @@ export default function FieldCard({
       ].join(" ")}
       {...(enableDrag ? listeners : {})}
       {...(enableDrag ? attributes : {})}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       {enableDrag ? (
         <span
@@ -136,8 +149,13 @@ export default function FieldCard({
       <div dir={themeDir} className="min-w-0 flex-1 text-start">
         <div className="truncate text-sm font-semibold text-slate-800">
           {field.label || <span className="text-slate-400">Untitled</span>}
+          {field.required && (
+            <span className="ms-1 text-red-500" aria-hidden>
+              *
+            </span>
+          )}
         </div>
-        <div className="truncate text-xs text-slate-400">
+        <div className="truncate text-xs text-slate-400" style={{ unicodeBidi: "plaintext" }}>
           {meta.label}
           {field.required && " · required"}
           {field.helpText ? " · has help" : ""}

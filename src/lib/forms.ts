@@ -65,13 +65,31 @@ function parseJson<T>(raw: unknown, fallback: T): T {
 }
 
 // Unwrap a data record from any @wix/data response shape:
-// insert → { dataItem: { data: {...} } } | { dataItem: {...} } | { item: {...} } | flat,
+// insert → { dataItem: { _id, data: {...} } } | { dataItem: {...} } | { item: {...} } | flat,
 // query items → flat { _id, ...} | nested { data: {...} }.
+// Critical: `_id` often lives on the container while fields live in `.data` —
+// descending into `.data` alone drops the id and breaks create → redirect.
 function toRecord(raw: unknown): Record<string, unknown> {
   const r = (raw ?? {}) as Record<string, unknown>;
   const container = (r.dataItem ?? r.item ?? r) as Record<string, unknown>;
-  const record = (container?.data ?? container) as Record<string, unknown>;
-  return record ?? {};
+  if (!container) return {};
+
+  const nested = container.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const n = nested as Record<string, unknown>;
+    // CMS payload (has form fields) vs unrelated nested objects
+    if (n.ownerId != null || n.title != null || n.slug != null || n.fields != null) {
+      return {
+        ...n,
+        _id: n._id ?? n.id ?? container._id ?? container.id,
+      };
+    }
+  }
+
+  return {
+    ...container,
+    _id: container._id ?? container.id,
+  };
 }
 
 function mapForm(raw: Record<string, unknown>): Form {
@@ -115,7 +133,15 @@ export async function createForm(input: FormInput): Promise<Form> {
   const res = await adminItems.insert(FORMS_COLLECTION, dataItem);
   // Merge the server record (has _id + timestamps) over the input so the id is
   // always present regardless of the SDK's response wrapper shape.
-  return mapForm({ ...dataItem, ...toRecord(res) });
+  const created = mapForm({ ...dataItem, ...toRecord(res) });
+  if (!created.id) {
+    // Last-resort: some SDK builds nest id only on the outer wrapper.
+    const outer = (res ?? {}) as Record<string, unknown>;
+    const wrap = (outer.dataItem ?? outer.item ?? outer) as Record<string, unknown>;
+    const fallbackId = String(wrap?._id ?? wrap?.id ?? outer._id ?? outer.id ?? "");
+    if (fallbackId) return { ...created, id: fallbackId };
+  }
+  return created;
 }
 
 export async function getFormById(id: string): Promise<Form | null> {

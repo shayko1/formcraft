@@ -11,6 +11,11 @@ import {
   validateFields,
 } from "../lib/form-schema";
 import { canvasHeight } from "../lib/canvas-snap";
+import {
+  parseUploadedFile,
+  serializeUploadedFile,
+  uploadToWixMedia,
+} from "../lib/upload";
 
 function trackOnce(formId: string, event: "view" | "start") {
   try {
@@ -125,13 +130,148 @@ function CanvasStage({
   return (
     <div ref={wrapRef} className="w-full min-w-0">
       <div className="relative mx-auto" style={{ width: width * scale, height: height * scale }}>
+        {/* Physical left — not logical start. Under dir=rtl, start-0 anchors to the
+            right while layout.x is still left-based, so the artboard drifts vs editor. */}
         <div
-          className="absolute start-0 top-0 origin-top-left"
+          className="absolute left-0 top-0 origin-top-left"
           style={{ width, minHeight: height, transform: `scale(${scale})` }}
         >
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+function FileUploadField({
+  formId,
+  field,
+  value,
+  disabled,
+  error,
+  compact,
+  darkCard,
+  labelStyle,
+  helpId,
+  onChange,
+  onFocus,
+}: {
+  formId: string;
+  field: FieldConfig;
+  value: string;
+  disabled?: boolean;
+  error?: string;
+  compact?: boolean;
+  darkCard?: boolean;
+  labelStyle: React.CSSProperties;
+  helpId: string;
+  onChange: (v: string) => void;
+  onFocus: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const parsed = parseUploadedFile(value);
+  const showError = error || localError;
+
+  const onPick = async (file: File | null) => {
+    setLocalError("");
+    if (!file) return;
+    setBusy(true);
+    try {
+      const uploaded = await uploadToWixMedia(formId, file);
+      onChange(serializeUploadedFile(uploaded));
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="text-start">
+      <label
+        className={[
+          "mb-1.5 block text-start font-semibold",
+          compact ? "text-xs" : "text-sm",
+          darkCard ? "text-slate-100" : "text-slate-700",
+        ].join(" ")}
+        style={labelStyle}
+      >
+        {field.label}
+        {field.required && (
+          <span className="ms-1 text-red-500" aria-hidden>
+            *
+          </span>
+        )}
+      </label>
+
+      <div
+        className={[
+          "rounded-xl border border-dashed px-3.5 py-3",
+          showError
+            ? "border-red-400 bg-red-50"
+            : darkCard
+              ? "border-white/20 bg-white/5"
+              : "border-slate-300 bg-slate-50",
+        ].join(" ")}
+      >
+        {parsed ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <a
+              href={parsed.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-w-0 truncate text-sm font-medium text-[var(--accent)] underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {parsed.name}
+            </a>
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="shrink-0 text-xs font-semibold text-slate-500 hover:text-red-600"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-center">
+            <p className={["text-sm", darkCard ? "text-slate-300" : "text-slate-500"].join(" ")}>
+              {busy ? "Uploading…" : "Choose a file to upload"}
+            </p>
+            <button
+              type="button"
+              disabled={disabled || busy}
+              onClick={() => {
+                onFocus();
+                inputRef.current?.click();
+              }}
+              className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 disabled:opacity-50"
+            >
+              Browse
+            </button>
+          </div>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          className="sr-only"
+          disabled={disabled || busy}
+          accept="image/*,.pdf,.doc,.docx,.txt,.zip,.xls,.xlsx,.ppt,.pptx"
+          onChange={(e) => void onPick(e.target.files?.[0] ?? null)}
+        />
+      </div>
+
+      {field.helpText && (
+        <p id={helpId} className="mt-1 text-xs text-slate-400">
+          {field.helpText}
+        </p>
+      )}
+      {showError && <p className="mt-1 text-xs font-medium text-red-500">{showError}</p>}
     </div>
   );
 }
@@ -344,16 +484,24 @@ export default function FormRenderer({
 
     if (f.type === "file") {
       return (
-        <div key={f.id} dir={mergedTheme.dir} className="text-start">
-          <label
-            className="mb-1.5 block text-start text-sm font-semibold text-slate-700"
-            style={labelStyle}
-          >
-            {f.label}
-          </label>
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-4 text-center text-sm text-slate-400">
-            File uploads coming soon
-          </div>
+        <div
+          key={f.id}
+          dir={mergedTheme.dir}
+          className={["text-start", opts?.compact ? "h-full" : undefined].filter(Boolean).join(" ")}
+        >
+          <FileUploadField
+            formId={formId}
+            field={f}
+            value={(values[f.id] as string) ?? ""}
+            disabled={preview}
+            error={err}
+            compact={opts?.compact}
+            darkCard={darkCard}
+            labelStyle={labelStyle}
+            helpId={helpId}
+            onChange={(v) => setValue(rowIndex, f.id, v)}
+            onFocus={markStarted}
+          />
         </div>
       );
     }
@@ -374,7 +522,11 @@ export default function FormRenderer({
           style={labelStyle}
         >
           {f.label}
-          {f.required && <span className="text-red-500"> *</span>}
+          {f.required && (
+            <span className="ms-1 text-red-500" aria-hidden>
+              *
+            </span>
+          )}
         </label>
 
         {f.type === "textarea" ? (
@@ -412,7 +564,7 @@ export default function FormRenderer({
         ) : f.type === "radio" ? (
           <div className="space-y-1.5" role="radiogroup" aria-label={f.label}>
             {(f.options ?? []).map((o) => (
-              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+              <label key={o} className="flex items-center gap-2 text-start text-sm text-slate-700">
                 <input
                   type="radio"
                   name={radioName}
@@ -422,14 +574,14 @@ export default function FormRenderer({
                   onChange={() => setValue(rowIndex, f.id, o)}
                   style={{ accentColor: "var(--accent)" }}
                 />
-                {o}
+                <span className="min-w-0 text-start">{o}</span>
               </label>
             ))}
           </div>
         ) : f.type === "checkbox" ? (
           <div className="space-y-1.5" role="group" aria-label={f.label}>
             {(f.options ?? []).map((o) => (
-              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+              <label key={o} className="flex items-center gap-2 text-start text-sm text-slate-700">
                 <input
                   type="checkbox"
                   disabled={preview}
@@ -440,7 +592,7 @@ export default function FormRenderer({
                   onChange={() => toggleCheckbox(rowIndex, f.id, o)}
                   style={{ accentColor: "var(--accent)" }}
                 />
-                {o}
+                <span className="min-w-0 text-start">{o}</span>
               </label>
             ))}
           </div>
