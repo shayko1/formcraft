@@ -121,6 +121,7 @@ export default function FormBuilder(props: FormBuilderProps) {
   const [fullPreview, setFullPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   const savedSnapshot = useRef("");
   const isCanvas = theme.layoutMode === "canvas";
@@ -140,6 +141,14 @@ export default function FormBuilder(props: FormBuilderProps) {
   }, [title, description, fields, internalFields, theme]);
 
   useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
     if (!dirty) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -149,8 +158,9 @@ export default function FormBuilder(props: FormBuilderProps) {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
 
+  // Higher distance so light finger pans scroll instead of starting a drag.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 12 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -174,8 +184,7 @@ export default function FormBuilder(props: FormBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  // Always lock document scroll — the editor scrolls inside a fixed 100dvh shell
-  // (required inside the Wix dashboard iframe; body scroll does not work there).
+  // Lock document scroll — editor uses a fixed inset shell that fills the host iframe.
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -550,8 +559,8 @@ export default function FormBuilder(props: FormBuilderProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Fixed viewport shell — scroll happens inside panes (Wix iframe safe). */}
-      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-slate-100">
+      {/* Fill the visible host frame (not 100dvh — that overshoots the Wix iframe). */}
+      <div className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-slate-100">
       {/* Top bar — stays visible */}
       <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -792,7 +801,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             <StackCanvas
               fields={fields}
               selectedId={selectedId}
-              enableDrag
+              enableDrag={!isNarrow}
               themeDir={theme.dir}
               onSelect={(id) => selectField(id)}
               onDelete={deleteField}

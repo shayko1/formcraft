@@ -14,8 +14,13 @@ if (form.ownerId !== memberId) return new Response("You don't have access to thi
 
 const origin = Astro.url.origin;
 ---
-<Layout title={`Edit · ${form.title}`} noindex bodyClass="h-dvh overflow-hidden bg-slate-100 text-slate-900">
-  <div class="h-full w-full min-w-0 overflow-hidden">
+<Layout
+  title={`Edit · ${form.title}`}
+  noindex
+  htmlClass="h-full"
+  bodyClass="h-full overflow-hidden bg-slate-100 text-slate-900"
+>
+  <div class="relative h-full w-full min-w-0 overflow-hidden">
     <FormBuilder
       client:load
       formId={form.id}
