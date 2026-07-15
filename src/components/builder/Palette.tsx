@@ -1,13 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import * as LucideIcons from "lucide-react";
 import { FIELD_TYPE_LIST, type FieldType } from "../../lib/form-schema";
-
-function IconRenderer({ name }: { name: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className="h-4 w-4" />;
-}
+import { Icon } from "../icons";
 
 function PaletteChip({
   type,
@@ -73,7 +67,7 @@ function PaletteChip({
           strip ? "h-5 w-5" : "h-6 w-6",
         ].join(" ")}
       >
-        <IconRenderer name={icon} />
+        <Icon name={icon} />
       </span>
       <span className={strip ? "whitespace-nowrap" : "flex-1"}>{label}</span>
       {comingSoon && !strip && (

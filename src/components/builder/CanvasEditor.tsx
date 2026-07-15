@@ -1,6 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as LucideIcons from "lucide-react";
 import {
   DEFAULT_CANVAS_WIDTH,
   DEFAULT_THEME,
@@ -12,13 +11,8 @@ import {
   type FormTheme,
 } from "../../lib/form-schema";
 import { canvasHeight, snapPosition, type GuideLine } from "../../lib/canvas-snap";
+import { Icon } from "../icons";
 import FieldPreview from "./FieldPreview";
-
-function Icon({ name, className }: { name: string; className?: string }) {
-  const C = (LucideIcons as any)[name];
-  if (!C) return null;
-  return <C className={className || "h-4 w-4"} />;
-}
 
 interface CanvasEditorProps {
   fields: FieldConfig[];

@@ -32,7 +32,7 @@ try {
         <strong>Couldn't load your subscription.</strong> {error}
       </div>
     ) : summary ? (
-      <SubscriptionPanel client:load summary={summary} />
+      <SubscriptionPanel client:visible summary={summary} />
     ) : null}
   </main>
 </Layout>

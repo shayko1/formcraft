@@ -94,10 +94,10 @@ const origin = Astro.url.origin;
         {quota && quota.tier === "free" && !quota.canCreateForm && (
           <div class="mb-8 flex flex-wrap items-center justify-between gap-4 clay-card bg-[var(--color-brand-yellow)]/20 p-6 border border-[var(--color-brand-yellow)]/50">
             <p class="text-base font-bold text-[var(--color-brand-dark)]">You've reached your free plan limit of {quota.maxForms} form{quota.maxForms === 1 ? "" : "s"}. Upgrade to Pro for unlimited forms and responses.</p>
-            <UpgradeButton client:load label="Upgrade to Pro" className="clay-btn-primary px-6 py-3 text-sm font-bold" />
+            <UpgradeButton client:idle label="Upgrade to Pro" className="clay-btn-primary px-6 py-3 text-sm font-bold" />
           </div>
         )}
-        <FormsList client:load forms={forms} origin={origin} />
+        <FormsList client:visible forms={forms} origin={origin} />
       </>
     )}
   </main>

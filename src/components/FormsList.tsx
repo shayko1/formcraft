@@ -1,11 +1,5 @@
 import { useState } from "react";
-import * as LucideIcons from "lucide-react";
-
-function IconRenderer({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className={className || "h-4 w-4"} />;
-}
+import { Icon } from "./icons";
 
 export interface FormSummary {
   id: string;
@@ -54,7 +48,7 @@ export default function FormsList({ forms: initial, origin }: FormsListProps) {
     return (
       <div className="clay-card border-dashed border-2 border-[var(--color-brand-primary)]/30 bg-[var(--color-brand-primary)]/5 p-12 text-center flex flex-col items-center">
         <span className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] drop-shadow-sm">
-          <IconRenderer name="FileText" className="h-10 w-10" />
+          <Icon name="FileText" className="h-10 w-10" />
         </span>
         <h3 className="mt-6 text-2xl font-bold text-[var(--color-brand-dark)]">No forms yet</h3>
         <p className="mt-2 text-base font-bold text-[var(--color-brand-muted)]">Create your first form to start collecting responses.</p>

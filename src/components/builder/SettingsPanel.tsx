@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import * as LucideIcons from "lucide-react";
 import {
   FIELD_BACKGROUND_PRESETS,
   FIELD_TYPES,
@@ -7,12 +6,7 @@ import {
   type FieldConfig,
 } from "../../lib/form-schema";
 import { uploadToWixMedia } from "../../lib/upload";
-
-function IconRenderer({ name }: { name: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className="h-4 w-4" />;
-}
+import { Icon } from "../icons";
 
 interface SettingsPanelProps {
   field: FieldConfig | null;
@@ -33,7 +27,7 @@ export default function SettingsPanel({ field, formId, onChange }: SettingsPanel
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 p-8 text-center">
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">
-          <IconRenderer name="Settings2" />
+          <Icon name="Settings2" />
         </span>
         <p className="mt-2 text-sm text-slate-400">Select a field to edit its settings</p>
       </div>
@@ -86,7 +80,7 @@ export default function SettingsPanel({ field, formId, onChange }: SettingsPanel
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm">
-          <IconRenderer name={meta.icon} />
+          <Icon name={meta.icon} />
         </span>
         {meta.label}
         {meta.comingSoon && <span className="text-amber-600">· coming soon</span>}
@@ -376,7 +370,7 @@ export default function SettingsPanel({ field, formId, onChange }: SettingsPanel
                   onClick={() => moveOption(i, -1)}
                   className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:opacity-30"
                 >
-                  <IconRenderer name="ArrowUp" />
+                  <Icon name="ArrowUp" />
                 </button>
                 <button
                   type="button"
@@ -385,7 +379,7 @@ export default function SettingsPanel({ field, formId, onChange }: SettingsPanel
                   onClick={() => moveOption(i, 1)}
                   className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:opacity-30"
                 >
-                  <IconRenderer name="ArrowDown" />
+                  <Icon name="ArrowDown" />
                 </button>
                 <button
                   type="button"
@@ -394,7 +388,7 @@ export default function SettingsPanel({ field, formId, onChange }: SettingsPanel
                   onClick={() => removeOption(i)}
                   className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
                 >
-                  <IconRenderer name="X" />
+                  <Icon name="X" />
                 </button>
               </div>
             ))}

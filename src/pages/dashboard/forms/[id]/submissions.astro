@@ -65,7 +65,7 @@ const publicUrl = `${Astro.url.origin}/f/${form.slug}`;
           {hiddenCount} more response{hiddenCount === 1 ? " is" : "s are"} collected but hidden on the Free plan.
           Upgrade to Pro to view and export all of them.
         </p>
-        <UpgradeButton client:load label="Upgrade to Pro" className="rounded-lg bg-grad-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90" />
+        <UpgradeButton client:idle label="Upgrade to Pro" className="rounded-lg bg-grad-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90" />
       </div>
     )}
 

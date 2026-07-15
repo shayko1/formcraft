@@ -11,7 +11,6 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import * as LucideIcons from "lucide-react";
 import {
   SortableContext,
   arrayMove,
@@ -37,18 +36,13 @@ import {
   type CardStyle,
 } from "../../lib/form-schema";
 import { nextDropLayout } from "../../lib/canvas-snap";
+import { Icon } from "../icons";
 import Palette from "./Palette";
 import CanvasEditor from "./CanvasEditor";
 import FieldCard, { FieldDragPreview } from "./FieldCard";
 import SettingsPanel from "./SettingsPanel";
 import InternalFieldsEditor from "./InternalFieldsEditor";
 import FormRenderer from "../FormRenderer";
-
-function IconRenderer({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className={className || "h-4 w-4"} />;
-}
 
 interface FormBuilderProps {
   formId: string;
@@ -548,7 +542,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             }}
             className="shrink-0 rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
           >
-            <IconRenderer name="ArrowLeft" />
+            <Icon name="ArrowLeft" />
           </a>
           <input
             value={title}
@@ -614,7 +608,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-3"
           >
-            <IconRenderer name="Inbox" className="h-4 w-4" />
+            <Icon name="Inbox" className="h-4 w-4" />
             <span className="hidden sm:inline">Responses</span>
           </a>
           <button
@@ -750,7 +744,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                 ].join(" ")}
               >
                 <span className="flex items-center gap-1.5 text-xs font-bold">
-                  <IconRenderer name={m.icon} className="h-3.5 w-3.5" />
+                  <Icon name={m.icon} className="h-3.5 w-3.5" />
                   {m.label}
                 </span>
                 <span className="hidden text-[10px] font-medium text-slate-400 sm:block">{m.hint}</span>
@@ -876,7 +870,7 @@ export default function FormBuilder(props: FormBuilderProps) {
                 onClick={() => setTab("build")}
                 className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 lg:hidden"
               >
-                <IconRenderer name="ArrowLeft" className="h-4 w-4" />
+                <Icon name="ArrowLeft" className="h-4 w-4" />
                 Fields
               </button>
               <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -1240,7 +1234,7 @@ export default function FormBuilder(props: FormBuilderProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
-              <IconRenderer name="PartyPopper" className="h-6 w-6" />
+              <Icon name="PartyPopper" className="h-6 w-6" />
             </div>
             <h3 className="mt-4 text-lg font-extrabold text-slate-900">Published!</h3>
             <p className="mt-1 text-sm text-slate-500">
@@ -1389,7 +1383,7 @@ function StackCanvas({
       {fields.length === 0 ? (
         <div className="flex h-72 flex-col items-center justify-center text-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            <IconRenderer name="Magnet" className="h-8 w-8" />
+            <Icon name="Magnet" className="h-8 w-8" />
           </span>
           <p className="mt-3 font-semibold text-slate-600">Add your first field</p>
           <p className="mt-1 text-sm text-slate-400 lg:hidden">Tap a field type above to add it</p>

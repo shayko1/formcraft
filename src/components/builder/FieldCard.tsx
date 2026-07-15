@@ -1,13 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import * as LucideIcons from "lucide-react";
 import { FIELD_TYPES, type FieldConfig, type FormTheme } from "../../lib/form-schema";
-
-function IconRenderer({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className={className || "h-4 w-4"} />;
-}
+import { Icon } from "../icons";
 
 /** Floating preview while dragging — no useSortable (must not share field ids). */
 export function FieldDragPreview({
@@ -24,10 +18,10 @@ export function FieldDragPreview({
       className="flex w-[360px] max-w-[90vw] cursor-grabbing items-center gap-3 rounded-xl border border-brand-400 bg-white p-3 shadow-2xl ring-2 ring-brand-100"
     >
       <span className="flex h-8 w-6 shrink-0 items-center justify-center text-slate-400">
-        <IconRenderer name="GripVertical" />
+        <Icon name="GripVertical" />
       </span>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
-        <IconRenderer name={meta.icon} />
+        <Icon name={meta.icon} />
       </span>
       <div dir={themeDir} className="min-w-0 flex-1 text-start">
         <div className="truncate text-sm font-semibold text-slate-800">
@@ -111,7 +105,7 @@ export default function FieldCard({
           aria-hidden
           className="flex h-9 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 group-hover:bg-slate-50 group-hover:text-slate-600"
         >
-          <IconRenderer name="GripVertical" />
+          <Icon name="GripVertical" />
         </span>
       ) : (
         <div className="flex shrink-0 flex-col gap-0.5">
@@ -125,7 +119,7 @@ export default function FieldCard({
             }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-30"
           >
-            <IconRenderer name="ChevronUp" className="h-4 w-4" />
+            <Icon name="ChevronUp" className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -137,13 +131,13 @@ export default function FieldCard({
             }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-30"
           >
-            <IconRenderer name="ChevronDown" className="h-4 w-4" />
+            <Icon name="ChevronDown" className="h-4 w-4" />
           </button>
         </div>
       )}
 
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
-        <IconRenderer name={meta.icon} />
+        <Icon name={meta.icon} />
       </span>
 
       <div dir={themeDir} className="min-w-0 flex-1 text-start">
@@ -174,7 +168,7 @@ export default function FieldCard({
         title="Duplicate"
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
-        <IconRenderer name="Copy" />
+        <Icon name="Copy" />
       </button>
 
       <button
@@ -188,7 +182,7 @@ export default function FieldCard({
         title="Delete"
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
       >
-        <IconRenderer name="X" />
+        <Icon name="X" />
       </button>
     </div>
   );

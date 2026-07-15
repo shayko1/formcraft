@@ -1,5 +1,5 @@
 import { useState } from "react";
-import * as LucideIcons from "lucide-react";
+import { Icon } from "./icons";
 
 export interface TemplateCard {
   id: string;
@@ -7,12 +7,6 @@ export interface TemplateCard {
   description: string;
   icon: string;
   fieldCount: number;
-}
-
-function IconRenderer({ name, className = "h-6 w-6 text-brand-600" }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as any)[name];
-  if (!Icon) return null;
-  return <Icon className={className} />;
 }
 
 /**
@@ -91,7 +85,7 @@ export default function TemplatePicker({
               className="group flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 text-start shadow-sm transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg disabled:opacity-60"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 transition group-hover:bg-brand-100">
-                <IconRenderer name={t.icon} />
+                <Icon name={t.icon} />
               </span>
               <h3 className="mt-4 text-base font-bold text-slate-900">{t.name}</h3>
               <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-500">{t.description}</p>
@@ -101,7 +95,7 @@ export default function TemplatePicker({
                 ) : (
                   <>
                     {t.fieldCount} fields · Use template{" "}
-                    <IconRenderer name="ArrowRight" className="h-3 w-3" />
+                    <Icon name="ArrowRight" className="h-3 w-3" />
                   </>
                 )}
               </span>
