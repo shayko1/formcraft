@@ -44,6 +44,29 @@ const {
     <slot name="head" />
   </head>
   <body class={`antialiased ${bodyClass.includes("h-dvh") || bodyClass.includes("h-full") || bodyClass.includes("overflow-hidden") ? "" : "min-h-screen "}${bodyClass}`}>
+    {/* Re-apply Max-Age on member sessions — Wix client token refresh writes session cookies without it. */}
+    <script is:inline>
+      (function () {
+        var MAX_AGE = 60 * 60 * 24 * 30;
+        function persist() {
+          try {
+            var row = document.cookie.split("; ").find(function (r) { return r.indexOf("wixSession=") === 0; });
+            if (!row) return;
+            var raw = decodeURIComponent(row.slice("wixSession=".length));
+            var parsed = JSON.parse(raw);
+            if (!parsed || !parsed.tokens || !parsed.tokens.refreshToken || parsed.tokens.refreshToken.role !== "member") return;
+            document.cookie =
+              "wixSession=" + encodeURIComponent(raw) +
+              "; path=/; secure; samesite=lax; max-age=" + MAX_AGE;
+          } catch (e) {}
+        }
+        persist();
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") persist();
+        });
+        window.addEventListener("focus", persist);
+      })();
+    </script>
     <slot />
   </body>
 </html>

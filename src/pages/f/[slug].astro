@@ -2,6 +2,7 @@
 import Layout from "../../components/Layout.astro";
 import FormRenderer from "../../components/FormRenderer";
 import { getFormBySlug, getPublicFormContent } from "../../lib/forms";
+import { getCurrentMemberId } from "../../lib/session";
 import {
   DEFAULT_THEME,
   resolveCardAppearance,
@@ -29,6 +30,9 @@ const pageStyle = page.style
 const cardStyle = Object.entries(card.style)
   .map(([k, v]) => `${k}:${v}`)
   .join(";");
+
+const memberId = available ? await getCurrentMemberId() : null;
+const isOwner = !!(form && memberId && form.ownerId === memberId);
 ---
 <Layout
   title={available && pub ? pub.title : "Form unavailable"}
@@ -39,6 +43,36 @@ const cardStyle = Object.entries(card.style)
   bodyClass={page.bodyClass}
 >
   <div class="min-h-screen" style={pageStyle}>
+    {isOwner && form && (
+      <div class:list={[
+        "sticky top-0 z-40 border-b px-3 py-2.5 text-center text-sm font-semibold backdrop-blur",
+        isInk
+          ? "border-slate-700/80 bg-slate-950/80 text-slate-200"
+          : "border-slate-200/80 bg-white/90 text-slate-700",
+      ]}>
+        You're the owner of this form.
+        <a
+          href={`/dashboard/forms/${form.id}/submissions`}
+          class:list={[
+            "ms-2 inline-flex items-center gap-1 underline-offset-2 hover:underline",
+            isInk ? "text-indigo-300" : "text-indigo-600",
+          ]}
+        >
+          View responses
+          <span aria-hidden="true">→</span>
+        </a>
+        <span class:list={["mx-2", isInk ? "text-slate-600" : "text-slate-300"]}>·</span>
+        <a
+          href={`/dashboard/forms/${form.id}/edit`}
+          class:list={[
+            "underline-offset-2 hover:underline",
+            isInk ? "text-slate-300" : "text-slate-500",
+          ]}
+        >
+          Edit form
+        </a>
+      </div>
+    )}
     <main class:list={[
       "mx-auto flex min-h-screen flex-col justify-center px-3 py-8 sm:px-4 sm:py-10",
       canvas ? "max-w-3xl" : "max-w-xl",
